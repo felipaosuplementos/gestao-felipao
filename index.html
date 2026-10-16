@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1558d6">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Felipão">
+  <title>Gestão Felipão</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icones/icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icones/icone-180.png">
+  <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+  <header class="topo">
+    <div class="topo-linha">
+      <div>
+        <div class="topo-loja">Felipão Suplementos</div>
+        <h1>Estoque</h1>
+      </div>
+      <button id="btn-menu" class="btn-icone" aria-label="Menu">☰</button>
+    </div>
+    <input id="busca" type="search" placeholder="Buscar produto ou marca…" autocomplete="off">
+    <div class="filtros">
+      <div id="chips" class="chips" role="tablist"></div>
+      <select id="filtro-categoria" aria-label="Categoria">
+        <option value="">Todas as categorias</option>
+      </select>
+    </div>
+  </header>
+
+  <main>
+    <div id="aviso-backup" class="aviso" hidden></div>
+    <div id="vazio" class="vazio" hidden>
+      <p><strong>Nenhum produto cadastrado ainda.</strong></p>
+      <p>Comece carregando o catálogo da loja:</p>
+      <button id="btn-catalogo-vazio" class="btn btn-primario">Carregar catálogo da loja</button>
+    </div>
+    <p id="contagem" class="contagem"></p>
+    <ul id="lista" class="lista"></ul>
+  </main>
+
+  <button id="btn-novo" class="fab">＋ Novo produto</button>
+
+  <!-- Detalhe do produto -->
+  <dialog id="dlg-produto" class="folha">
+    <div class="folha-topo">
+      <button class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+    </div>
+    <div id="produto-conteudo"></div>
+  </dialog>
+
+  <!-- Cadastro / edição -->
+  <dialog id="dlg-form" class="folha">
+    <form id="form-produto" method="dialog" novalidate>
+      <div class="folha-topo">
+        <h2 id="form-titulo">Novo produto</h2>
+        <button type="button" class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+      </div>
+      <div class="foto-campo">
+        <div id="form-foto" class="foto-grande sem-foto">Sem foto</div>
+        <div class="foto-botoes">
+          <label class="btn">📷 Tirar / escolher foto
+            <input id="input-foto" type="file" accept="image/*" hidden>
+          </label>
+          <button type="button" id="btn-remover-foto" class="btn btn-texto" hidden>Remover foto</button>
+        </div>
+      </div>
+      <label>Nome *<input name="nome" required></label>
+      <div class="duas">
+        <label>Marca<input name="marca" list="lista-marcas"></label>
+        <label>Sabor / variação<input name="variacao" placeholder="Ex.: Chocolate"></label>
+      </div>
+      <div class="duas">
+        <label>Categoria<input name="categoria" list="lista-categorias"></label>
+        <label>Tamanho<input name="tamanho" placeholder="Ex.: 900 g"></label>
+      </div>
+      <div class="duas">
+        <label>Custo (R$)<input name="custo" inputmode="decimal" placeholder="0,00"></label>
+        <label>Preço de venda (R$)<input name="preco" inputmode="decimal" placeholder="0,00"></label>
+      </div>
+      <p id="form-lucro" class="lucro"></p>
+      <div class="duas">
+        <label>Quantidade em estoque<input name="quantidade" inputmode="numeric" placeholder="—"></label>
+        <label>Avisar quando tiver<input name="estoqueMinimo" inputmode="numeric" placeholder="2"></label>
+      </div>
+      <label>Descrição<textarea name="descricao" rows="3"></textarea></label>
+      <datalist id="lista-marcas"></datalist>
+      <datalist id="lista-categorias"></datalist>
+      <div class="folha-acoes">
+        <button type="button" class="btn" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primario">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Entrada / saída de estoque -->
+  <dialog id="dlg-mov" class="folha folha-baixa">
+    <form id="form-mov" method="dialog">
+      <div class="folha-topo">
+        <h2 id="mov-titulo">Entrada</h2>
+        <button type="button" class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+      </div>
+      <p id="mov-produto" class="mov-produto"></p>
+      <div class="contador">
+        <button type="button" class="btn btn-grande" data-passo="-1">−</button>
+        <input id="mov-qtd" inputmode="numeric" value="1" aria-label="Quantidade">
+        <button type="button" class="btn btn-grande" data-passo="1">＋</button>
+      </div>
+      <div id="mov-motivos" class="chips chips-motivo"></div>
+      <input id="mov-motivo" placeholder="Motivo (opcional)">
+      <p id="mov-resultado" class="mov-resultado"></p>
+      <div class="folha-acoes">
+        <button type="button" class="btn" data-fechar>Cancelar</button>
+        <button type="submit" id="mov-confirmar" class="btn btn-primario">Confirmar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Menu -->
+  <dialog id="dlg-menu" class="folha folha-baixa">
+    <div class="folha-topo">
+      <h2>Menu</h2>
+      <button class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+    </div>
+    <div class="menu">
+      <button class="btn" id="menu-exportar">⬇️ Backup: baixar planilha de produtos</button>
+      <button class="btn" id="menu-historico">⬇️ Baixar histórico de estoque</button>
+      <label class="btn">⬆️ Importar planilha (CSV)
+        <input id="input-planilha" type="file" accept=".csv,text/csv,text/plain" hidden>
+      </label>
+      <button class="btn" id="menu-catalogo">📦 Carregar catálogo da loja</button>
+      <button class="btn" id="menu-arquivados">🗂️ Ver produtos arquivados</button>
+      <p id="menu-info" class="menu-info"></p>
+    </div>
+  </dialog>
+
+  <!-- Prévia da importação -->
+  <dialog id="dlg-importar" class="folha">
+    <div class="folha-topo">
+      <h2>Conferir importação</h2>
+      <button class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+    </div>
+    <div id="importar-conteudo"></div>
+    <div class="folha-acoes">
+      <button class="btn" data-fechar>Cancelar</button>
+      <button id="importar-confirmar" class="btn btn-primario">Importar</button>
+    </div>
+  </dialog>
+
+  <!-- Confirmação -->
+  <dialog id="dlg-confirmar" class="folha folha-baixa">
+    <h2 id="confirmar-titulo"></h2>
+    <p id="confirmar-texto"></p>
+    <div class="folha-acoes">
+      <button class="btn" id="confirmar-nao">Cancelar</button>
+      <button class="btn btn-perigo" id="confirmar-sim">Confirmar</button>
+    </div>
+  </dialog>
+
+  <div id="aviso" class="toast" role="status" hidden></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
