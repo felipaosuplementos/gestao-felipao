@@ -1,10 +1,10 @@
 // Permite abrir o sistema mesmo sem internet.
 // Sempre tenta a versão mais nova primeiro; sem internet, usa a cópia guardada.
-const CACHE = 'felipao-v1';
+const CACHE = 'felipao-v2';
 const ARQUIVOS = [
   './', 'index.html', 'css/estilo.css', 'js/app.js', 'js/db.js', 'js/planilha.js',
   'manifest.webmanifest', 'icones/icone.svg', 'icones/icone-192.png', 'icones/icone-180.png',
-  'dados/catalogo-felipao.csv',
+  'dados/catalogo-felipao.csv', 'fotos/indice.json',
 ];
 
 self.addEventListener('install', (e) => {
