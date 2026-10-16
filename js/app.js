@@ -79,12 +79,29 @@ async function carregar() {
   render();
 }
 
+// Códigos dos produtos que têm foto do catálogo da loja (pasta fotos/).
+let fotosCatalogo = null;
+async function carregarIndiceFotos() {
+  if (fotosCatalogo) return fotosCatalogo;
+  try {
+    const resp = await fetch('fotos/indice.json');
+    fotosCatalogo = new Set(resp.ok ? await resp.json() : []);
+  } catch {
+    fotosCatalogo = new Set();
+  }
+  return fotosCatalogo;
+}
+
+// Foto própria (tirada pelo Felipão) tem prioridade; senão usa a foto do catálogo.
 async function carregarFotos() {
+  const catalogo = await carregarIndiceFotos();
   for (const p of estado.produtos) {
-    if (p.temFoto && !estado.fotos.has(p.id)) {
+    if (estado.fotos.has(p.id)) continue;
+    if (p.temFoto) {
       const blob = await db.buscarFoto(p.id);
-      if (blob) estado.fotos.set(p.id, URL.createObjectURL(blob));
+      if (blob) { estado.fotos.set(p.id, URL.createObjectURL(blob)); continue; }
     }
+    if (!p.semFotoCatalogo && catalogo.has(p.codigo)) estado.fotos.set(p.id, `fotos/${encodeURIComponent(p.codigo)}.jpg`);
   }
 }
 
@@ -129,7 +146,7 @@ function renderChips() {
 function miniatura(p) {
   const url = estado.fotos.get(p.id);
   return url
-    ? `<div class="miniatura" style="background-image:url('${url}')"></div>`
+    ? `<div class="miniatura com-foto" style="background-image:url('${url}')"></div>`
     : `<div class="miniatura">${iniciais(p)}</div>`;
 }
 
@@ -195,7 +212,7 @@ async function abrirProduto(id) {
   const rotuloEstoque = { conferir: 'Quantidade ainda não conferida', zero: 'Sem estoque', baixo: `Acabando (aviso com ${minimo(p)} ou menos)`, ok: 'em estoque' }[s];
 
   $('#produto-conteudo').innerHTML = `
-    <div class="detalhe-foto ${url ? '' : 'sem-foto'}" ${url ? `style="background-image:url('${url}')"` : ''}>${url ? '' : iniciais(p)}</div>
+    <div class="detalhe-foto ${url ? 'com-foto' : 'sem-foto'}" ${url ? `style="background-image:url('${url}')"` : ''}>${url ? '' : iniciais(p)}</div>
     <h2 class="detalhe-nome">${esc(p.nome)}</h2>
     <p class="detalhe-sub">${esc([p.marca, p.variacao, p.tamanho].filter(Boolean).join(' · '))}
       ${p.categoria ? `<br><span class="etiqueta">${esc(p.categoria)}</span>` : ''}
@@ -410,7 +427,11 @@ $('#form-produto').addEventListener('submit', async (e) => {
   };
 
   let foto = formAtual.fotoNova;
-  if (foto === undefined && novo && formAtual.fotoDe) foto = await db.buscarFoto(formAtual.fotoDe);
+  if (foto === undefined && novo && formAtual.fotoDe) {
+    foto = await db.buscarFoto(formAtual.fotoDe);
+    const url = estado.fotos.get(formAtual.fotoDe);
+    if (!foto && url) foto = await fetch(url).then((r) => (r.ok ? r.blob() : undefined)).catch(() => undefined);
+  }
   if (foto) {
     await db.salvarFoto(produto.id, foto);
     produto.temFoto = true;
@@ -418,6 +439,7 @@ $('#form-produto').addEventListener('submit', async (e) => {
   } else if (foto === null) {
     await db.apagarFoto(produto.id);
     produto.temFoto = false;
+    produto.semFotoCatalogo = true;
     estado.fotos.delete(produto.id);
   }
 
