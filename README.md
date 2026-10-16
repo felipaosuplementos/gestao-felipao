@@ -1,2 +1,2 @@
-# Gest-o-Felip-o-
+# Gestão Felipão
 Sistema de gestão da Felipão Suplementos
