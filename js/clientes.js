@@ -509,6 +509,28 @@ $('#menu-exportar-clientes').addEventListener('click', () => {
   avisar('Lista de quem deve baixada');
 });
 $('#menu-importar-devedores').addEventListener('click', abrirImportacao);
+
+// Recomeçar o fiado: baixa o backup, pede para digitar APAGAR, apaga e abre a importação.
+$('#menu-fiado-zero').addEventListener('click', async () => {
+  $('#dlg-menu').close();
+  if (!estado.itens.length) { abrirImportacao(); return; }
+  const ativos = estado.itens.filter((i) => !i.cliente.arquivado);
+  const total = ativos.reduce((t, i) => t + i.situacao.saldo, 0);
+  const resposta = await confirmarComMotivo(
+    'Apagar todo o fiado?',
+    `Vai apagar ${estado.itens.length} clientes e todo o histórico de fiado e pagamentos (hoje: ${moedaCentavos(total)} a receber). O estoque não é mexido. Antes de apagar, o sistema baixa uma planilha de backup. Para confirmar, digite APAGAR.`,
+    'Apagar e começar do zero',
+    'Digite APAGAR',
+  );
+  if (resposta === null) return;
+  if (semAcento(resposta) !== 'apagar') { avisar('Nada foi apagado. Para confirmar, digite APAGAR.'); return; }
+  await exportarFiado();
+  await db.limparFiado();
+  estado.filtro = 'devendo';
+  await carregar();
+  avisar('Fiado apagado. Backup baixado. Agora importe a planilha nova.');
+  abrirImportacao();
+});
 $('#btn-importar-devedores-vazio').addEventListener('click', abrirImportacao);
 $('#menu-clientes-arquivados').addEventListener('click', () => {
   estado.filtro = 'arquivados';

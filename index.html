@@ -177,6 +177,7 @@
       <button class="btn" id="menu-exportar-clientes">⬇️ Baixar lista de quem deve</button>
       <button class="btn" id="menu-importar-devedores">⬆️ Importar planilha de devedores</button>
       <button class="btn" id="menu-clientes-arquivados">🗂️ Ver clientes arquivados</button>
+      <button class="btn btn-perigo-claro" id="menu-fiado-zero">🧹 Apagar o fiado e começar do zero</button>
       <p id="menu-info" class="menu-info"></p>
     </div>
   </dialog>
@@ -276,7 +277,7 @@
   <dialog id="dlg-confirmar" class="folha folha-baixa">
     <h2 id="confirmar-titulo"></h2>
     <p id="confirmar-texto"></p>
-    <input id="confirmar-campo" placeholder="Motivo (opcional)" hidden>
+    <input id="confirmar-campo" placeholder="Motivo (opcional)" autocomplete="off" hidden>
     <div class="folha-acoes">
       <button class="btn" id="confirmar-nao">Cancelar</button>
       <button class="btn btn-perigo" id="confirmar-sim">Confirmar</button>

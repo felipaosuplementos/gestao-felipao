@@ -48,9 +48,10 @@ export function confirmar(titulo, texto, rotuloSim = 'Confirmar', perigo = true)
 }
 
 // Igual ao confirmar, mas com um campo de texto (ex.: motivo). Devolve o texto, ou null se desistiu.
-export async function confirmarComMotivo(titulo, texto, rotuloSim) {
+export async function confirmarComMotivo(titulo, texto, rotuloSim, dica = 'Motivo (opcional)') {
   const campo = $('#confirmar-campo');
   campo.value = '';
+  campo.placeholder = dica;
   campo.hidden = false;
   const ok = await confirmar(titulo, texto, rotuloSim);
   campo.hidden = true;
