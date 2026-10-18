@@ -4,12 +4,15 @@
 const referencia = (l) => l.vencimento || l.data;
 // Na mesma data, vale a ordem da planilha de devedores (que vai do mais antigo para o mais novo).
 const ordem = (l) => l.ordemPlanilha ?? Infinity;
+// Dívida da planilha (sem data de verdade) é mais antiga que qualquer venda lançada no sistema,
+// não importa o dia em que foi importada.
+const chaveAntiguidade = (l) => (l.dataAproximada && !l.vencimento ? '0000-00-00' : referencia(l));
 
 export function situacaoCliente(lancamentos, hoje) {
   const validos = lancamentos.filter((l) => !l.cancelado);
   const dividas = validos
     .filter((l) => l.tipo === 'fiado')
-    .sort((a, b) => referencia(a).localeCompare(referencia(b)) || ordem(a) - ordem(b)
+    .sort((a, b) => chaveAntiguidade(a).localeCompare(chaveAntiguidade(b)) || ordem(a) - ordem(b)
       || (a.registradoEm || '').localeCompare(b.registradoEm || ''));
   let pago = validos.filter((l) => l.tipo === 'pagamento').reduce((s, l) => s + l.valor, 0);
   const totalDividas = dividas.reduce((s, l) => s + l.valor, 0);
@@ -32,6 +35,7 @@ export function situacaoCliente(lancamentos, hoje) {
     desde: maisAntigo ? referencia(maisAntigo) : null,
     desdeAproximado: !!maisAntigo?.dataAproximada,
     ordemDesde: maisAntigo ? ordem(maisAntigo) : Infinity,
+    chaveDesde: maisAntigo ? chaveAntiguidade(maisAntigo) : null,
     diasAtraso: maisAntigo ? diasEntre(referencia(maisAntigo), hoje) : 0,
     proximoVencimento: aVencer[0] ? { data: referencia(aVencer[0]), valor: aVencer[0].restante } : null,
     abertos,

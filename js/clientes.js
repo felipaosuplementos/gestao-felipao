@@ -47,7 +47,7 @@ function ordenar(lista) {
     return lista.sort((a, b) => a.cliente.nome.localeCompare(b.cliente.nome, 'pt-BR'));
   }
   // Quem deve há mais tempo primeiro; na mesma data, a ordem da planilha; depois quem deve mais.
-  return lista.sort((a, b) => (a.situacao.desde || '9999').localeCompare(b.situacao.desde || '9999')
+  return lista.sort((a, b) => (a.situacao.chaveDesde || '9999').localeCompare(b.situacao.chaveDesde || '9999')
     || a.situacao.ordemDesde - b.situacao.ordemDesde || b.situacao.saldo - a.situacao.saldo);
 }
 
