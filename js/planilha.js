@@ -171,8 +171,24 @@ const COLUNAS_DEVEDORES = {
   observacao: ['observacao', 'obs', 'anotacao'],
 };
 
+// "24/10 - 530", "24/11- 530", "09/01/2027 - R$ 457,50" (ou data e valor em colunas separadas).
+const LINHA_PARCELA = /^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\s*(?:-\s*(.+))?$/;
+
+// Sem ano na data: usa o ano de hoje; se ficaria mais de 2 meses no passado, é do ano que vem
+// (em outubro, "09/01" é janeiro do ano seguinte).
+function dataDaParcela(dia, mes, ano, hoje) {
+  const z = (n) => String(n).padStart(2, '0');
+  if (ano) return `${ano.length === 2 ? `20${ano}` : ano}-${z(mes)}-${z(dia)}`;
+  const anoHoje = Number(hoje.slice(0, 4));
+  const data = `${anoHoje}-${z(mes)}-${z(dia)}`;
+  const limite = new Date(`${hoje}T12:00:00Z`);
+  limite.setUTCDate(limite.getUTCDate() - 60);
+  return data < limite.toISOString().slice(0, 10) ? `${anoHoje + 1}-${z(mes)}-${z(dia)}` : data;
+}
+
 // Aceita planilha com títulos (ex.: "Devedores | Valor") ou só as colunas Nome e Valor coladas.
-export function linhasParaDevedores(linhas) {
+// Um nome sem valor seguido de linhas "dia/mês - valor" vira parcelas desse cliente, com vencimento.
+export function linhasParaDevedores(linhas, hoje) {
   if (!linhas.length) return { itens: [], ignoradas: [], erros: ['Não encontrei nenhuma linha.'] };
   const titulos = linhas[0].map(semAcento);
   const mapa = {};
@@ -190,16 +206,48 @@ export function linhasParaDevedores(linhas) {
   }
   const itens = [];
   const ignoradas = [];
+  let dono = null; // { nome, parcelas: [] } — nome sem valor que pode ter parcelas embaixo
+
+  const fecharDono = () => {
+    if (!dono) return;
+    if (!dono.parcelas.length) ignoradas.push(dono.nome);
+    // Parcelas seguidas com o mesmo dia do mês são da mesma compra (ex.: 24/10 e 24/11 = 1/2 e 2/2).
+    const grupos = [];
+    for (const p of dono.parcelas) {
+      const ultimo = grupos[grupos.length - 1];
+      if (ultimo && ultimo[0].vencimento.slice(8) === p.vencimento.slice(8)) ultimo.push(p); else grupos.push([p]);
+    }
+    for (const g of grupos) {
+      g.forEach((p, i) => itens.push({ ...p, nome: dono.nome, parcela: g.length > 1 ? `${i + 1}/${g.length}` : '' }));
+    }
+    dono = null;
+  };
+
   for (const l of corpo) {
     const pegar = (campo) => (mapa[campo] === undefined ? '' : (l[mapa[campo]] ?? '').trim());
     const nome = pegar('nome');
-    const valor = lerNumero(pegar('valor'));
     const texto = l.map((v) => v.trim()).filter(Boolean).join(' ');
     if (!texto) continue;
+
+    const parcela = nome.match(LINHA_PARCELA);
+    if (parcela) {
+      const valor = lerNumero(parcela[4] ?? pegar('valor'));
+      if (dono && valor > 0) {
+        dono.parcelas.push({ valor: Math.round(valor * 100), vencimento: dataDaParcela(+parcela[1], +parcela[2], parcela[3], hoje), whatsapp: '', observacao: '' });
+      } else {
+        ignoradas.push(texto);
+      }
+      continue;
+    }
+
+    fecharDono();
+    const valor = lerNumero(pegar('valor'));
     if (semAcento(nome) === 'total') { ignoradas.push(`${texto} (linha de total)`); continue; }
+    if (nome && valor == null) { dono = { nome, parcelas: [] }; continue; }
     if (!nome || valor == null || valor <= 0) { ignoradas.push(texto); continue; }
     itens.push({ nome, valor: Math.round(valor * 100), whatsapp: pegar('whatsapp'), observacao: pegar('observacao') });
   }
+  fecharDono();
   return { itens, ignoradas, erros: [] };
 }
 

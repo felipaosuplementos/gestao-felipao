@@ -388,24 +388,26 @@ function abrirImportacao() {
 }
 
 function prepararImportacao(texto, origem) {
-  const { itens, ignoradas, erros } = linhasParaDevedores(lerCsv(texto));
+  const hoje = hojeISO();
+  const { itens, ignoradas, erros } = linhasParaDevedores(lerCsv(texto), hoje);
   if (erros.length) { avisar(erros[0]); return; }
   const existentes = new Map(estado.itens.map((i) => [chaveNome(i.cliente.nome), i]));
-  const hoje = hojeISO();
   const novos = new Map(); // chave -> cliente novo
   const clientes = [];
   const lancamentos = [];
   const jaImportados = [];
   const paraExistentes = [];
   const contagem = new Map();
-  for (const it of itens) contagem.set(chaveNome(it.nome), [...(contagem.get(chaveNome(it.nome)) || []), it.valor]);
+  // Parcelas do mesmo cliente não contam como nome repetido.
+  for (const it of itens.filter((i) => !i.vencimento)) contagem.set(chaveNome(it.nome), [...(contagem.get(chaveNome(it.nome)) || []), it.valor]);
 
   for (const it of itens) {
     const chave = chaveNome(it.nome);
     const existente = existentes.get(chave);
     let clienteId;
     if (existente) {
-      const repetido = existente.lancamentos.some((l) => l.origem === 'planilha' && !l.cancelado && l.valor === it.valor);
+      const repetido = existente.lancamentos.some((l) => l.origem === 'planilha' && !l.cancelado && l.valor === it.valor
+        && (l.vencimento || '') === (it.vencimento || ''));
       if (repetido) { jaImportados.push(it); continue; }
       clienteId = existente.cliente.id;
       paraExistentes.push(it);
@@ -419,7 +421,8 @@ function prepararImportacao(texto, origem) {
     }
     lancamentos.push({
       clienteId, tipo: 'fiado', valor: it.valor, data: hoje, dataAproximada: true,
-      descricao: 'Saldo da planilha de devedores', origem: 'planilha',
+      descricao: it.vencimento ? 'Parcela da planilha de devedores' : 'Saldo da planilha de devedores', origem: 'planilha',
+      ...(it.vencimento ? { vencimento: it.vencimento, parcela: it.parcela } : {}),
     });
   }
   importacao = { clientes, lancamentos };
@@ -440,7 +443,7 @@ function prepararImportacao(texto, origem) {
     ${paraExistentes.length ? `<p><strong>${paraExistentes.length}</strong> valores vão para clientes que já estão cadastrados: ${paraExistentes.map((i) => esc(i.nome)).join(', ')}.</p>` : ''}
     ${jaImportados.length ? `<p><strong>${jaImportados.length}</strong> já tinham sido importados antes e foram ignorados.</p>` : ''}
     ${ignoradas.length ? `<div class="aviso"><strong>Linhas que não entram</strong> (sem valor ou linha de total). Se for dívida, lance à mão na ficha do cliente:<br>${ignoradas.map(esc).join('<br>')}</div>` : ''}
-    <ul class="previa">${lancamentos.map((l) => `<li>${esc(clientes.find((c) => c.id === l.clienteId)?.nome || estado.itens.find((i) => i.cliente.id === l.clienteId)?.cliente.nome)} — <strong>${moedaCentavos(l.valor)}</strong></li>`).join('')}</ul>
+    <ul class="previa">${lancamentos.map((l) => `<li>${esc(clientes.find((c) => c.id === l.clienteId)?.nome || estado.itens.find((i) => i.cliente.id === l.clienteId)?.cliente.nome)} — <strong>${moedaCentavos(l.valor)}</strong>${l.vencimento ? ` <small>· vence ${dataCurta(l.vencimento)}${l.parcela ? ` (parcela ${esc(l.parcela)})` : ''}</small>` : ''}</li>`).join('')}</ul>
   `;
   $('#devedores-entrada').hidden = true;
   $('#devedores-previa').hidden = false;
