@@ -47,6 +47,16 @@ export function confirmar(titulo, texto, rotuloSim = 'Confirmar', perigo = true)
   });
 }
 
+// Igual ao confirmar, mas com um campo de texto (ex.: motivo). Devolve o texto, ou null se desistiu.
+export async function confirmarComMotivo(titulo, texto, rotuloSim) {
+  const campo = $('#confirmar-campo');
+  campo.value = '';
+  campo.hidden = false;
+  const ok = await confirmar(titulo, texto, rotuloSim);
+  campo.hidden = true;
+  return ok ? campo.value.trim() : null;
+}
+
 export function lerPreferencia(chave) {
   try { return localStorage.getItem(`felipao.${chave}`); } catch { return null; }
 }

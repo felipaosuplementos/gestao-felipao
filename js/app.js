@@ -521,6 +521,7 @@ $('#btn-catalogo-vazio').addEventListener('click', carregarCatalogo);
 $('#menu-arquivados').addEventListener('click', () => {
   estado.filtro = 'arquivados';
   $('#dlg-menu').close();
+  mostrarTela('estoque');
   render();
 });
 
@@ -539,11 +540,28 @@ $('#chips').addEventListener('click', (e) => {
 $('#filtro-categoria').addEventListener('change', (e) => { estado.categoria = e.target.value; render(); });
 $('#busca').addEventListener('input', (e) => { estado.busca = e.target.value; render(); });
 $('#btn-novo').addEventListener('click', () => abrirFormulario());
-$('#btn-menu').addEventListener('click', () => {
+// Barra de baixo: troca entre Estoque e Clientes.
+function mostrarTela(tela) {
+  document.querySelectorAll('.tela').forEach((el) => { el.hidden = el.id !== `tela-${tela}`; });
+  document.querySelectorAll('.aba').forEach((b) => {
+    if (b.dataset.tela === tela) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+  gravarPreferencia('tela', tela);
+  window.scrollTo(0, 0);
+  document.dispatchEvent(new CustomEvent('tela-aberta', { detail: tela }));
+}
+document.querySelector('.abas').addEventListener('click', (e) => {
+  const aba = e.target.closest('[data-tela]');
+  if (aba) mostrarTela(aba.dataset.tela);
+});
+document.addEventListener('mostrar-tela', (e) => mostrarTela(e.detail));
+mostrarTela(lerPreferencia('tela') === 'clientes' ? 'clientes' : 'estoque');
+
+document.querySelectorAll('.btn-abrir-menu').forEach((b) => b.addEventListener('click', () => {
   const ultimo = lerPreferencia('ultimoBackup');
   $('#menu-info').textContent = `${estado.produtos.length} produtos cadastrados. ${ultimo ? `Último backup: ${dataHora(ultimo)}.` : 'Nenhum backup feito ainda.'} Os dados ficam guardados neste aparelho.`;
   $('#dlg-menu').showModal();
-});
+}));
 document.addEventListener('click', (e) => {
   if (e.target.closest('[data-fechar]')) e.target.closest('dialog').close();
 });
