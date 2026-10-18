@@ -4,7 +4,8 @@ export function lerCsv(texto) {
   texto = texto.replace(/^﻿/, '');
   const primeiraLinha = texto.split(/\r?\n/, 1)[0] || '';
   const contar = (c) => primeiraLinha.split(c).length - 1;
-  const sep = contar(';') >= contar(',') ? ';' : (contar('\t') > contar(',') ? '\t' : ',');
+  // Usa o separador que mais aparece na primeira linha (texto colado do Google Planilhas vem com TAB).
+  const sep = [';', '\t', ','].reduce((melhor, c) => (contar(c) > contar(melhor) ? c : melhor), ';');
 
   const linhas = [];
   let linha = [];
@@ -64,6 +65,7 @@ export function lerNumero(valor) {
   let s = String(valor).replace(/R\$|\s/g, '');
   if (s === '') return null;
   if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, ''); // "3.196" = três mil
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
 }
@@ -158,4 +160,65 @@ export function baixarArquivo(nome, conteudo, tipo = 'text/csv;charset=utf-8') {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+// ---------- Devedores (fiado) ----------
+
+const COLUNAS_DEVEDORES = {
+  nome: ['devedores', 'devedor', 'nome', 'cliente', 'clientes'],
+  valor: ['valor', 'saldo', 'deve', 'divida', 'total', 'valor devido'],
+  whatsapp: ['whatsapp', 'telefone', 'celular', 'fone', 'contato'],
+  observacao: ['observacao', 'obs', 'anotacao'],
+};
+
+// Aceita planilha com títulos (ex.: "Devedores | Valor") ou só as colunas Nome e Valor coladas.
+export function linhasParaDevedores(linhas) {
+  if (!linhas.length) return { itens: [], ignoradas: [], erros: ['Não encontrei nenhuma linha.'] };
+  const titulos = linhas[0].map(semAcento);
+  const mapa = {};
+  for (const [campo, nomes] of Object.entries(COLUNAS_DEVEDORES)) {
+    const i = titulos.findIndex((t) => nomes.includes(t));
+    if (i >= 0) mapa[campo] = i;
+  }
+  let corpo = linhas.slice(1);
+  if (mapa.nome === undefined || mapa.valor === undefined) {
+    if (linhas[0].length >= 2 && lerNumero(linhas[0][1]) != null) {
+      mapa.nome = 0; mapa.valor = 1; corpo = linhas; // sem títulos
+    } else {
+      return { itens: [], ignoradas: [], erros: ['Não achei as colunas de nome e valor. A primeira coluna deve ser o nome e a segunda o valor.'] };
+    }
+  }
+  const itens = [];
+  const ignoradas = [];
+  for (const l of corpo) {
+    const pegar = (campo) => (mapa[campo] === undefined ? '' : (l[mapa[campo]] ?? '').trim());
+    const nome = pegar('nome');
+    const valor = lerNumero(pegar('valor'));
+    const texto = l.map((v) => v.trim()).filter(Boolean).join(' ');
+    if (!texto) continue;
+    if (semAcento(nome) === 'total') { ignoradas.push(`${texto} (linha de total)`); continue; }
+    if (!nome || valor == null || valor <= 0) { ignoradas.push(texto); continue; }
+    itens.push({ nome, valor: Math.round(valor * 100), whatsapp: pegar('whatsapp'), observacao: pegar('observacao') });
+  }
+  return { itens, ignoradas, erros: [] };
+}
+
+const reaisBr = (centavos) => (centavos == null ? '' : (centavos / 100).toFixed(2).replace('.', ','));
+const diaBr = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
+
+export function csvClientes(linhas) {
+  const cab = ['nome', 'whatsapp', 'deve', 'vencido', 'a_vencer', 'deve_desde', 'observacao', 'arquivado'];
+  return gerarCsv(cab, linhas.map(({ cliente: c, situacao: s }) => [
+    c.nome, c.whatsapp, reaisBr(s.saldo), reaisBr(s.vencido), reaisBr(s.aVencer),
+    s.desde ? `${s.desdeAproximado ? 'antes de ' : ''}${diaBr(s.desde)}` : '', c.observacao, c.arquivado ? 'sim' : '',
+  ]));
+}
+
+export function csvLancamentos(lancamentos, nomes) {
+  const cab = ['cliente', 'tipo', 'valor', 'data', 'vencimento', 'parcela', 'descricao', 'forma_pagamento', 'registrado_em', 'cancelado_em', 'motivo_cancelamento'];
+  return gerarCsv(cab, lancamentos.map((l) => [
+    nomes.get(l.clienteId) || '', l.tipo === 'fiado' ? 'Fiado' : 'Pagamento', reaisBr(l.valor), diaBr(l.data),
+    diaBr(l.vencimento), l.parcela, l.descricao, l.forma, dataBr(l.registradoEm),
+    l.cancelado ? dataBr(l.cancelado.em) : '', l.cancelado?.motivo,
+  ]));
 }
