@@ -3,15 +3,13 @@ import {
   lerCsv, linhasParaProdutos, lerNumero, lerInteiro,
   csvProdutos, csvMovimentos, baixarArquivo, nomeTipo,
 } from './planilha.js';
+import {
+  $, moeda, esc, semAcento, dataHora, avisar, confirmar, lerPreferencia, gravarPreferencia,
+} from './comum.js';
 
 const MINIMO_PADRAO = 2;
 const DIAS_AVISO_BACKUP = 7;
 
-const $ = (sel) => document.querySelector(sel);
-const moeda = (n) => (n == null ? '—' : n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const semAcento = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-const dataHora = (iso) => new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 const categoriaPrincipal = (c) => (c || 'Sem categoria').split('>')[0].trim();
 // Sem foto, mostra as iniciais da marca (ex.: Max Titanium → MT).
 const iniciais = (p) => esc((p.marca || p.nome || '?').split(/\s+/).filter((w) => /^[\p{L}\d]/u.test(w)).slice(0, 2).map((w) => w[0]).join('').toUpperCase());
@@ -41,33 +39,6 @@ const FILTROS = [
   { id: 'zerados', nome: 'Sem estoque', teste: (p) => situacao(p) === 'zero' },
   { id: 'conferir', nome: 'A conferir', teste: faltaConferir },
 ];
-
-// ---------- Avisos ----------
-
-let avisoTimer;
-function avisar(texto) {
-  const el = $('#aviso');
-  el.textContent = texto;
-  el.hidden = false;
-  clearTimeout(avisoTimer);
-  avisoTimer = setTimeout(() => { el.hidden = true; }, 3000);
-}
-
-function confirmar(titulo, texto, rotuloSim = 'Confirmar', perigo = true) {
-  const dlg = $('#dlg-confirmar');
-  $('#confirmar-titulo').textContent = titulo;
-  $('#confirmar-texto').textContent = texto;
-  const sim = $('#confirmar-sim');
-  sim.textContent = rotuloSim;
-  sim.className = `btn ${perigo ? 'btn-perigo' : 'btn-primario'}`;
-  return new Promise((resolve) => {
-    const fim = (v) => { dlg.close(); sim.onclick = null; $('#confirmar-nao').onclick = null; resolve(v); };
-    sim.onclick = () => fim(true);
-    $('#confirmar-nao').onclick = () => fim(false);
-    dlg.oncancel = () => resolve(false);
-    dlg.showModal();
-  });
-}
 
 // ---------- Lista ----------
 
@@ -187,13 +158,6 @@ function renderAvisoBackup() {
     <br><button class="btn" id="btn-backup-aviso">⬇️ Baixar planilha agora</button>`;
   el.hidden = false;
   $('#btn-backup-aviso').onclick = exportarProdutos;
-}
-
-function lerPreferencia(chave) {
-  try { return localStorage.getItem(`felipao.${chave}`); } catch { return null; }
-}
-function gravarPreferencia(chave, valor) {
-  try { localStorage.setItem(`felipao.${chave}`, valor); } catch { /* sem acesso */ }
 }
 
 // ---------- Detalhe do produto ----------
