@@ -16,7 +16,7 @@ Sistema de gestão da Felipão Suplementos
 - Ficha do cliente com WhatsApp (abre a conversa), observação e histórico com data e hora.
 - **＋ Fiado** (à vista ou em até 6 parcelas mensais) e **Recebi pagamento** (Pix, dinheiro, cartão), que aceita pagamento parcial e abate primeiro a dívida mais antiga.
 - Lançamento errado não é apagado: é **cancelado** e continua no histórico.
-- **Importar a planilha de devedores**: cole as colunas nome e valor do Google Planilhas ou escolha o CSV. Tem prévia, e importar de novo não duplica.
+- **Importar a planilha de devedores**: cole as colunas nome e valor do Google Planilhas ou escolha o CSV. Tem prévia, e importar de novo não duplica. Um nome sem valor seguido de linhas "24/10 - 530" vira parcelas com vencimento.
 - **Backup**: planilha do fiado (todos os lançamentos) e lista de quem deve.
 
 Os dados ficam guardados no próprio celular (funciona sem internet). Faça backup com frequência.
