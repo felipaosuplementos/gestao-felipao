@@ -238,3 +238,15 @@ export async function cancelarLancamento(id, motivo) {
   loja.put({ ...lanc, cancelado: { em: agora(), motivo: motivo || '' } });
   await concluir(tx);
 }
+
+// Guarda a posição de cada valor na planilha de devedores (para a lista seguir a mesma ordem).
+export async function atualizarOrdemPlanilha(itens) {
+  const db = await abrir();
+  const tx = db.transaction('lancamentos', 'readwrite');
+  const loja = tx.objectStore('lancamentos');
+  for (const { id, ordemPlanilha } of itens) {
+    const lanc = await pedido(loja.get(id));
+    if (lanc) loja.put({ ...lanc, ordemPlanilha });
+  }
+  await concluir(tx);
+}

@@ -2,12 +2,15 @@
 // Pagamentos abatem primeiro a dívida mais antiga.
 
 const referencia = (l) => l.vencimento || l.data;
+// Na mesma data, vale a ordem da planilha de devedores (que vai do mais antigo para o mais novo).
+const ordem = (l) => l.ordemPlanilha ?? Infinity;
 
 export function situacaoCliente(lancamentos, hoje) {
   const validos = lancamentos.filter((l) => !l.cancelado);
   const dividas = validos
     .filter((l) => l.tipo === 'fiado')
-    .sort((a, b) => referencia(a).localeCompare(referencia(b)) || (a.registradoEm || '').localeCompare(b.registradoEm || ''));
+    .sort((a, b) => referencia(a).localeCompare(referencia(b)) || ordem(a) - ordem(b)
+      || (a.registradoEm || '').localeCompare(b.registradoEm || ''));
   let pago = validos.filter((l) => l.tipo === 'pagamento').reduce((s, l) => s + l.valor, 0);
   const totalDividas = dividas.reduce((s, l) => s + l.valor, 0);
 
@@ -28,6 +31,7 @@ export function situacaoCliente(lancamentos, hoje) {
     credito: Math.max(0, validos.filter((l) => l.tipo === 'pagamento').reduce((s, l) => s + l.valor, 0) - totalDividas),
     desde: maisAntigo ? referencia(maisAntigo) : null,
     desdeAproximado: !!maisAntigo?.dataAproximada,
+    ordemDesde: maisAntigo ? ordem(maisAntigo) : Infinity,
     diasAtraso: maisAntigo ? diasEntre(referencia(maisAntigo), hoje) : 0,
     proximoVencimento: aVencer[0] ? { data: referencia(aVencer[0]), valor: aVencer[0].restante } : null,
     abertos,
