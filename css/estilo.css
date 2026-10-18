@@ -25,7 +25,7 @@ body {
   background: var(--fundo);
   color: var(--texto);
   font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  padding-bottom: 96px;
+  padding-bottom: calc(150px + env(safe-area-inset-bottom));
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -46,7 +46,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .topo h1 { margin: 0; font-size: 24px; }
 .topo .btn-icone { color: var(--branco); font-size: 26px; }
 
-#busca {
+#busca, #busca-clientes {
   width: 100%;
   margin-top: 10px;
   padding: 12px 14px;
@@ -181,7 +181,7 @@ main { padding: 12px 16px; max-width: 720px; margin: 0 auto; }
 .fab {
   position: fixed;
   right: 16px;
-  bottom: calc(16px + env(safe-area-inset-bottom));
+  bottom: calc(84px + env(safe-area-inset-bottom));
   z-index: 6;
   border: 0;
   border-radius: 999px;
@@ -348,7 +348,7 @@ form input:focus, form textarea:focus, #mov-motivo:focus { outline: 2px solid va
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(86px + env(safe-area-inset-bottom));
+  bottom: calc(150px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 20;
   background: var(--texto);
@@ -358,3 +358,86 @@ form input:focus, form textarea:focus, #mov-motivo:focus { outline: 2px solid va
   max-width: calc(100% - 32px);
   box-shadow: 0 6px 18px rgb(0 0 0 / 25%);
 }
+
+/* Barra de baixo (Estoque | Clientes) */
+.abas {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 7;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--branco);
+  border-top: 1px solid var(--borda);
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -2px 10px rgb(11 58 140 / 8%);
+}
+.aba {
+  border: 0;
+  background: none;
+  padding: 8px 0 10px;
+  font-size: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--texto-suave);
+  cursor: pointer;
+}
+.aba span { font-size: 13px; font-weight: 600; }
+.aba[aria-current="page"] { color: var(--azul); box-shadow: inset 0 3px 0 var(--azul); }
+
+/* Clientes e fiado */
+.resumo-fiado { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+.resumo-fiado div { background: rgb(255 255 255 / 14%); border-radius: 12px; padding: 8px 10px; }
+.resumo-fiado small { display: block; font-size: 12px; opacity: .85; }
+.resumo-fiado strong { font-size: 16px; white-space: nowrap; }
+.avatar { border-radius: 50%; font-size: 17px; }
+.avatar-grande { width: 64px; height: 64px; font-size: 24px; }
+.cliente-cabecalho { display: flex; gap: 14px; align-items: center; margin-bottom: 8px; }
+.cliente-cabecalho .detalhe-sub { margin-bottom: 0; }
+.item-sub-quebra { white-space: normal; }
+.saldo {
+  flex: none;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+  background: var(--azul-claro);
+  color: var(--azul-escuro);
+}
+.saldo.vencido { background: var(--laranja-claro); color: var(--laranja); }
+.saldo.atrasado { background: var(--vermelho-claro); color: var(--vermelho); }
+.saldo.quitado { background: #e7f6ec; color: var(--verde); }
+.saldo-caixa .numero { font-size: 36px; margin: 2px 0 4px; }
+.saldo-caixa.vencido .numero { color: var(--laranja); }
+.saldo-caixa.atrasado .numero { color: var(--vermelho); }
+.saldo-caixa.quitado .numero { color: var(--verde); }
+.acoes-produto a.btn { text-decoration: none; }
+.historico li.cancelado > div, .historico li.cancelado .dif { text-decoration: line-through; opacity: .55; }
+.historico li.cancelado small.erros { text-decoration: none; opacity: 1; }
+.btn-cancelar { padding: 0; min-height: 28px; font-size: 13px; color: var(--texto-suave); text-decoration: underline; cursor: pointer; }
+.campo-valor { font-size: 26px !important; font-weight: 700; }
+form select {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 12px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  background: var(--branco);
+  font-size: 17px;
+}
+#devedores-texto, #confirmar-campo {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+.menu-titulo { margin: 8px 0 -2px; font-size: 13px; font-weight: 700; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .04em; }
+.previa .aviso, dialog .aviso { margin: 10px 0; }

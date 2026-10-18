@@ -3,9 +3,11 @@
 //   produtos    — um registro por item de estoque (cada sabor/tamanho é um item)
 //   movimentos  — histórico de toda entrada, saída e correção de estoque
 //   fotos       — fotos dos produtos (separadas para a lista carregar rápido)
+//   clientes    — clientes (nome, WhatsApp, observação)
+//   lancamentos — fiado e pagamentos de cada cliente (nunca apagados; só cancelados)
 
 const NOME_BANCO = 'gestao-felipao';
-const VERSAO = 1;
+const VERSAO = 2;
 
 let bancoPromessa = null;
 
@@ -25,6 +27,13 @@ function abrir() {
       }
       if (!db.objectStoreNames.contains('fotos')) {
         db.createObjectStore('fotos');
+      }
+      if (!db.objectStoreNames.contains('clientes')) {
+        db.createObjectStore('clientes', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('lancamentos')) {
+        const lanc = db.createObjectStore('lancamentos', { keyPath: 'id' });
+        lanc.createIndex('clienteId', 'clienteId', { unique: false });
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -175,4 +184,57 @@ export async function pedirArmazenamentoPersistente() {
     if (navigator.storage?.persist) return await navigator.storage.persist();
   } catch { /* sem suporte */ }
   return false;
+}
+
+// ---------- Clientes e fiado ----------
+
+export async function listarClientes() {
+  const db = await abrir();
+  return pedido(db.transaction('clientes').objectStore('clientes').getAll());
+}
+
+export async function buscarCliente(id) {
+  const db = await abrir();
+  return pedido(db.transaction('clientes').objectStore('clientes').get(id));
+}
+
+export async function salvarCliente(cliente) {
+  const db = await abrir();
+  const tx = db.transaction('clientes', 'readwrite');
+  const dataHora = agora();
+  const salvar = { ...cliente, atualizadoEm: dataHora, criadoEm: cliente.criadoEm || dataHora };
+  tx.objectStore('clientes').put(salvar);
+  await concluir(tx);
+  return salvar;
+}
+
+export async function listarLancamentos(clienteId) {
+  const db = await abrir();
+  const loja = db.transaction('lancamentos').objectStore('lancamentos');
+  return clienteId ? pedido(loja.index('clienteId').getAll(clienteId)) : pedido(loja.getAll());
+}
+
+// Grava clientes novos e lançamentos de uma vez (tudo ou nada).
+export async function gravarFiado({ clientes = [], lancamentos = [] }) {
+  const db = await abrir();
+  const tx = db.transaction(['clientes', 'lancamentos'], 'readwrite');
+  const dataHora = agora();
+  for (const c of clientes) {
+    tx.objectStore('clientes').put({ ...c, criadoEm: c.criadoEm || dataHora, atualizadoEm: dataHora });
+  }
+  for (const l of lancamentos) {
+    tx.objectStore('lancamentos').put({ ...l, id: l.id || novoId(), registradoEm: dataHora, cancelado: null });
+  }
+  await concluir(tx);
+}
+
+// Lançamento errado não é apagado: fica marcado como cancelado, com data e motivo.
+export async function cancelarLancamento(id, motivo) {
+  const db = await abrir();
+  const tx = db.transaction('lancamentos', 'readwrite');
+  const loja = tx.objectStore('lancamentos');
+  const lanc = await pedido(loja.get(id));
+  if (!lanc || lanc.cancelado) { tx.abort(); return; }
+  loja.put({ ...lanc, cancelado: { em: agora(), motivo: motivo || '' } });
+  await concluir(tx);
 }

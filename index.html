@@ -13,13 +13,14 @@
   <link rel="stylesheet" href="css/estilo.css">
 </head>
 <body>
+  <section id="tela-estoque" class="tela">
   <header class="topo">
     <div class="topo-linha">
       <div>
         <div class="topo-loja">Felipão Suplementos</div>
         <h1>Estoque</h1>
       </div>
-      <button id="btn-menu" class="btn-icone" aria-label="Menu">☰</button>
+      <button id="btn-menu" class="btn-icone btn-abrir-menu" aria-label="Menu">☰</button>
     </div>
     <input id="busca" type="search" placeholder="Buscar produto ou marca…" autocomplete="off">
     <div class="filtros">
@@ -42,6 +43,44 @@
   </main>
 
   <button id="btn-novo" class="fab">＋ Novo produto</button>
+  </section>
+
+  <section id="tela-clientes" class="tela" hidden>
+    <header class="topo">
+      <div class="topo-linha">
+        <div>
+          <div class="topo-loja">Felipão Suplementos</div>
+          <h1>Clientes e fiado</h1>
+        </div>
+        <button class="btn-icone btn-abrir-menu" aria-label="Menu">☰</button>
+      </div>
+      <div class="resumo-fiado">
+        <div><small>A receber</small><strong id="total-receber">R$ 0,00</strong></div>
+        <div><small>Para cobrar</small><strong id="total-vencido">R$ 0,00</strong></div>
+        <div><small>Parcelas a vencer</small><strong id="total-a-vencer">R$ 0,00</strong></div>
+      </div>
+      <input id="busca-clientes" type="search" placeholder="Buscar cliente…" autocomplete="off">
+      <div class="filtros">
+        <div id="chips-clientes" class="chips"></div>
+      </div>
+    </header>
+    <main>
+      <div id="aviso-backup-clientes" class="aviso" hidden></div>
+      <div id="vazio-clientes" class="vazio" hidden>
+        <p><strong>Nenhum cliente cadastrado ainda.</strong></p>
+        <p>Traga quem já te deve da sua planilha de devedores:</p>
+        <button id="btn-importar-devedores-vazio" class="btn btn-primario">Importar planilha de devedores</button>
+      </div>
+      <p id="contagem-clientes" class="contagem"></p>
+      <ul id="lista-clientes" class="lista"></ul>
+    </main>
+    <button id="btn-novo-cliente" class="fab">＋ Novo cliente</button>
+  </section>
+
+  <nav class="abas" aria-label="Telas">
+    <button class="aba" data-tela="estoque" aria-current="page">📦<span>Estoque</span></button>
+    <button class="aba" data-tela="clientes">👥<span>Clientes</span></button>
+  </nav>
 
   <!-- Detalhe do produto -->
   <dialog id="dlg-produto" class="folha">
@@ -125,6 +164,7 @@
       <button class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
     </div>
     <div class="menu">
+      <p class="menu-titulo">Estoque</p>
       <button class="btn" id="menu-exportar">⬇️ Backup: baixar planilha de produtos</button>
       <button class="btn" id="menu-historico">⬇️ Baixar histórico de estoque</button>
       <label class="btn">⬆️ Importar planilha (CSV)
@@ -132,6 +172,11 @@
       </label>
       <button class="btn" id="menu-catalogo">📦 Carregar catálogo da loja</button>
       <button class="btn" id="menu-arquivados">🗂️ Ver produtos arquivados</button>
+      <p class="menu-titulo">Clientes e fiado</p>
+      <button class="btn" id="menu-exportar-fiado">⬇️ Backup: baixar planilha do fiado</button>
+      <button class="btn" id="menu-exportar-clientes">⬇️ Baixar lista de quem deve</button>
+      <button class="btn" id="menu-importar-devedores">⬆️ Importar planilha de devedores</button>
+      <button class="btn" id="menu-clientes-arquivados">🗂️ Ver clientes arquivados</button>
       <p id="menu-info" class="menu-info"></p>
     </div>
   </dialog>
@@ -149,10 +194,89 @@
     </div>
   </dialog>
 
+  <!-- Ficha do cliente -->
+  <dialog id="dlg-cliente" class="folha">
+    <div class="folha-topo">
+      <button class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+    </div>
+    <div id="cliente-conteudo"></div>
+  </dialog>
+
+  <!-- Cadastro de cliente -->
+  <dialog id="dlg-form-cliente" class="folha folha-baixa">
+    <form id="form-cliente" method="dialog" novalidate>
+      <div class="folha-topo">
+        <h2 id="form-cliente-titulo">Novo cliente</h2>
+        <button type="button" class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+      </div>
+      <label>Nome *<input name="nome" required autocomplete="off"></label>
+      <label>WhatsApp<input name="whatsapp" inputmode="tel" placeholder="(37) 99999-9999"></label>
+      <label>Observação<textarea name="observacao" rows="2" placeholder="Ex.: academia, paga todo dia 10"></textarea></label>
+      <p id="form-cliente-aviso" class="erros"></p>
+      <div class="folha-acoes">
+        <button type="button" class="btn" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primario">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Fiado / pagamento -->
+  <dialog id="dlg-lanc" class="folha">
+    <form id="form-lanc" method="dialog" novalidate>
+      <div class="folha-topo">
+        <h2 id="lanc-titulo">Fiado</h2>
+        <button type="button" class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+      </div>
+      <p id="lanc-cliente" class="mov-produto"></p>
+      <label>Valor (R$) *<input name="valor" inputmode="decimal" placeholder="0,00" class="campo-valor" autocomplete="off"></label>
+      <div id="lanc-atalhos" class="chips chips-motivo"></div>
+      <div id="lanc-formas" class="chips chips-motivo"></div>
+      <label id="lanc-descricao-rotulo">O que levou<input name="descricao" placeholder="Ex.: Whey Fort 3W chocolate" autocomplete="off"></label>
+      <label>Data<input name="data" type="date"></label>
+      <div id="lanc-parcelamento">
+        <div class="duas">
+          <label>Parcelas<select name="parcelas">
+            <option value="1">À vista (sem parcelas)</option>
+            <option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+          </select></label>
+          <label id="lanc-venc-rotulo" hidden>1º vencimento<input name="vencimento" type="date"></label>
+        </div>
+        <ul id="lanc-parcelas" class="previa"></ul>
+      </div>
+      <p id="lanc-resultado" class="mov-resultado"></p>
+      <div class="folha-acoes">
+        <button type="button" class="btn" data-fechar>Cancelar</button>
+        <button type="submit" id="lanc-confirmar" class="btn btn-primario">Confirmar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Importar devedores -->
+  <dialog id="dlg-devedores" class="folha">
+    <div class="folha-topo">
+      <h2>Importar devedores</h2>
+      <button class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+    </div>
+    <div id="devedores-entrada">
+      <p class="descricao">No Google Planilhas, selecione as colunas <strong>nome</strong> e <strong>valor</strong>, copie (Ctrl + C) e cole aqui (Ctrl + V):</p>
+      <textarea id="devedores-texto" rows="6" placeholder="Maria    150&#10;João    89,90"></textarea>
+      <p class="descricao">Ou escolha o arquivo baixado em Arquivo → Fazer download → CSV:</p>
+      <label class="btn">📄 Escolher arquivo CSV
+        <input id="input-devedores" type="file" accept=".csv,text/csv,text/plain" hidden>
+      </label>
+    </div>
+    <div id="devedores-previa" hidden></div>
+    <div class="folha-acoes">
+      <button class="btn" data-fechar>Cancelar</button>
+      <button id="devedores-confirmar" class="btn btn-primario">Conferir</button>
+    </div>
+  </dialog>
+
   <!-- Confirmação -->
   <dialog id="dlg-confirmar" class="folha folha-baixa">
     <h2 id="confirmar-titulo"></h2>
     <p id="confirmar-texto"></p>
+    <input id="confirmar-campo" placeholder="Motivo (opcional)" hidden>
     <div class="folha-acoes">
       <button class="btn" id="confirmar-nao">Cancelar</button>
       <button class="btn btn-perigo" id="confirmar-sim">Confirmar</button>
@@ -162,5 +286,6 @@
   <div id="aviso" class="toast" role="status" hidden></div>
 
   <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/clientes.js"></script>
 </body>
 </html>

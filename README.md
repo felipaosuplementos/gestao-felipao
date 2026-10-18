@@ -10,6 +10,15 @@ Sistema de gestão da Felipão Suplementos
 - **Importar** o catálogo da loja (`dados/catalogo-felipao.csv`) ou qualquer planilha CSV, com prévia antes de gravar.
 - **Backup**: baixa planilhas de produtos e do histórico (abrem no Excel).
 
+## Módulo 2 — Clientes e fiado (pronto)
+- Aba **Clientes** na barra de baixo, com o total **a receber**, o que já está **para cobrar** e as **parcelas a vencer**.
+- Lista de quem deve, de quem deve há mais tempo para o mais recente, com destaque para mais de 30 dias.
+- Ficha do cliente com WhatsApp (abre a conversa), observação e histórico com data e hora.
+- **＋ Fiado** (à vista ou em até 6 parcelas mensais) e **Recebi pagamento** (Pix, dinheiro, cartão), que aceita pagamento parcial e abate primeiro a dívida mais antiga.
+- Lançamento errado não é apagado: é **cancelado** e continua no histórico.
+- **Importar a planilha de devedores**: cole as colunas nome e valor do Google Planilhas ou escolha o CSV. Tem prévia, e importar de novo não duplica.
+- **Backup**: planilha do fiado (todos os lançamentos) e lista de quem deve.
+
 Os dados ficam guardados no próprio celular (funciona sem internet). Faça backup com frequência.
 
 ## Como abrir
