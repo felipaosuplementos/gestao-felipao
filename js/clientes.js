@@ -46,9 +46,9 @@ function ordenar(lista) {
   if (estado.filtro !== 'devendo' && estado.filtro !== 'atrasados') {
     return lista.sort((a, b) => a.cliente.nome.localeCompare(b.cliente.nome, 'pt-BR'));
   }
-  // Quem deve há mais tempo primeiro; empate: quem deve mais.
+  // Quem deve há mais tempo primeiro; na mesma data, a ordem da planilha; depois quem deve mais.
   return lista.sort((a, b) => (a.situacao.desde || '9999').localeCompare(b.situacao.desde || '9999')
-    || b.situacao.saldo - a.situacao.saldo);
+    || a.situacao.ordemDesde - b.situacao.ordemDesde || b.situacao.saldo - a.situacao.saldo);
 }
 
 function visiveis() {
@@ -401,14 +401,19 @@ function prepararImportacao(texto, origem) {
   // Parcelas do mesmo cliente não contam como nome repetido.
   for (const it of itens.filter((i) => !i.vencimento)) contagem.set(chaveNome(it.nome), [...(contagem.get(chaveNome(it.nome)) || []), it.valor]);
 
-  for (const it of itens) {
+  const ordemAtualizada = []; // já importados antes, sem a ordem da planilha guardada
+  for (const [posicao, it] of itens.entries()) {
     const chave = chaveNome(it.nome);
     const existente = existentes.get(chave);
     let clienteId;
     if (existente) {
-      const repetido = existente.lancamentos.some((l) => l.origem === 'planilha' && !l.cancelado && l.valor === it.valor
+      const repetido = existente.lancamentos.find((l) => l.origem === 'planilha' && !l.cancelado && l.valor === it.valor
         && (l.vencimento || '') === (it.vencimento || ''));
-      if (repetido) { jaImportados.push(it); continue; }
+      if (repetido) {
+        jaImportados.push(it);
+        if (repetido.ordemPlanilha !== posicao) ordemAtualizada.push({ id: repetido.id, ordemPlanilha: posicao });
+        continue;
+      }
       clienteId = existente.cliente.id;
       paraExistentes.push(it);
     } else {
@@ -422,10 +427,11 @@ function prepararImportacao(texto, origem) {
     lancamentos.push({
       clienteId, tipo: 'fiado', valor: it.valor, data: hoje, dataAproximada: true,
       descricao: it.vencimento ? 'Parcela da planilha de devedores' : 'Saldo da planilha de devedores', origem: 'planilha',
+      ordemPlanilha: posicao,
       ...(it.vencimento ? { vencimento: it.vencimento, parcela: it.parcela } : {}),
     });
   }
-  importacao = { clientes, lancamentos };
+  importacao = { clientes, lancamentos, ordemAtualizada };
   const total = lancamentos.reduce((s, l) => s + l.valor, 0);
   const repetidos = [...contagem].filter(([, v]) => v.length > 1);
   const nomeDe = (chave) => itens.find((i) => chaveNome(i.nome) === chave).nome;
@@ -437,18 +443,19 @@ function prepararImportacao(texto, origem) {
       <div><strong>${lancamentos.length}</strong><small>valores</small></div>
       <div><strong>${moedaCentavos(total).replace('R$', '').trim()}</strong><small>total (R$)</small></div>
     </div>
-    <p class="descricao">A planilha não tem as datas, então cada valor entra com a data de hoje marcada como "deve desde antes de ${dataCurta(hoje)}". Nada é apagado.</p>
+    <p class="descricao">A planilha não tem as datas, então cada valor entra marcado como "deve desde antes de ${dataCurta(hoje)}", e a lista segue a ordem da planilha (do mais antigo para o mais novo). Nada é apagado.</p>
     ${repetidos.length ? `<div class="aviso">${repetidos.map(([chave, v]) => `<strong>${esc(nomeDe(chave))}</strong> aparece ${v.length} vezes (${v.map(moedaCentavos).join(' + ')}): os valores vão para a mesma pessoa.`).join('<br>')}
       <br>Se forem pessoas diferentes, cancele, mude o nome de uma delas na planilha (ex.: "${esc(nomeDe(repetidos[0][0]))} 2") e importe de novo.</div>` : ''}
     ${paraExistentes.length ? `<p><strong>${paraExistentes.length}</strong> valores vão para clientes que já estão cadastrados: ${paraExistentes.map((i) => esc(i.nome)).join(', ')}.</p>` : ''}
-    ${jaImportados.length ? `<p><strong>${jaImportados.length}</strong> já tinham sido importados antes e foram ignorados.</p>` : ''}
+    ${jaImportados.length ? `<p><strong>${jaImportados.length}</strong> já tinham sido importados antes e não entram de novo.${ordemAtualizada.length ? ` A ordem deles na lista vai ser atualizada para seguir a planilha.` : ''}</p>` : ''}
     ${ignoradas.length ? `<div class="aviso"><strong>Linhas que não entram</strong> (sem valor ou linha de total). Se for dívida, lance à mão na ficha do cliente:<br>${ignoradas.map(esc).join('<br>')}</div>` : ''}
     <ul class="previa">${lancamentos.map((l) => `<li>${esc(clientes.find((c) => c.id === l.clienteId)?.nome || estado.itens.find((i) => i.cliente.id === l.clienteId)?.cliente.nome)} — <strong>${moedaCentavos(l.valor)}</strong>${l.vencimento ? ` <small>· vence ${dataCurta(l.vencimento)}${l.parcela ? ` (parcela ${esc(l.parcela)})` : ''}</small>` : ''}</li>`).join('')}</ul>
   `;
   $('#devedores-entrada').hidden = true;
   $('#devedores-previa').hidden = false;
-  $('#devedores-confirmar').textContent = lancamentos.length ? `Importar ${lancamentos.length} valores` : 'Nada para importar';
-  $('#devedores-confirmar').disabled = !lancamentos.length;
+  $('#devedores-confirmar').textContent = lancamentos.length ? `Importar ${lancamentos.length} valores`
+    : ordemAtualizada.length ? 'Atualizar a ordem' : 'Nada para importar';
+  $('#devedores-confirmar').disabled = !lancamentos.length && !ordemAtualizada.length;
 }
 
 $('#devedores-confirmar').addEventListener('click', async () => {
@@ -460,9 +467,10 @@ $('#devedores-confirmar').addEventListener('click', async () => {
   }
   const n = importacao.lancamentos.length;
   await db.gravarFiado(importacao);
+  if (importacao.ordemAtualizada.length) await db.atualizarOrdemPlanilha(importacao.ordemAtualizada);
   importacao = null;
   $('#dlg-devedores').close();
-  avisar(`${n} valores importados`);
+  avisar(n ? `${n} valores importados` : 'Ordem da planilha atualizada');
   estado.filtro = 'devendo';
   await carregar();
 });
