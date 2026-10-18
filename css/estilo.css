@@ -441,3 +441,4 @@ form select {
 }
 .menu-titulo { margin: 8px 0 -2px; font-size: 13px; font-weight: 700; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .04em; }
 .previa .aviso, dialog .aviso { margin: 10px 0; }
+.btn-perigo-claro { color: var(--vermelho); border-color: #f3c4c4; }

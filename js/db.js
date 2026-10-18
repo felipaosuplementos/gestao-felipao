@@ -250,3 +250,13 @@ export async function atualizarOrdemPlanilha(itens) {
   }
   await concluir(tx);
 }
+
+// Apaga todos os clientes e lançamentos do fiado (o estoque não é mexido).
+// Só é chamado depois de confirmação e de baixar o backup.
+export async function limparFiado() {
+  const db = await abrir();
+  const tx = db.transaction(['clientes', 'lancamentos'], 'readwrite');
+  tx.objectStore('clientes').clear();
+  tx.objectStore('lancamentos').clear();
+  await concluir(tx);
+}

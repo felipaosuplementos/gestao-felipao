@@ -18,6 +18,7 @@ Sistema de gestão da Felipão Suplementos
 - Lançamento errado não é apagado: é **cancelado** e continua no histórico.
 - **Importar a planilha de devedores**: cole as colunas nome e valor do Google Planilhas ou escolha o CSV. Tem prévia, e importar de novo não duplica. Um nome sem valor seguido de linhas "24/10 - 530" vira parcelas com vencimento.
 - **Backup**: planilha do fiado (todos os lançamentos) e lista de quem deve.
+- **Começar do zero**: apaga o fiado (pede para digitar APAGAR e baixa um backup antes) para importar uma planilha nova. O estoque não é mexido.
 
 Os dados ficam guardados no próprio celular (funciona sem internet). Faça backup com frequência.
 
