@@ -138,7 +138,7 @@ export function csvProdutos(produtos) {
 
 const NOMES_TIPO = {
   entrada: 'Entrada', saida: 'Saída', correcao: 'Correção',
-  importacao: 'Importação', cadastro: 'Cadastro',
+  importacao: 'Importação', cadastro: 'Cadastro', venda: 'Venda', devolucao: 'Devolução',
 };
 export const nomeTipo = (t) => NOMES_TIPO[t] || t;
 
@@ -269,4 +269,23 @@ export function csvLancamentos(lancamentos, nomes) {
     diaBr(l.vencimento), l.parcela, l.descricao, l.forma, dataBr(l.registradoEm),
     l.cancelado ? dataBr(l.cancelado.em) : '', l.cancelado?.motivo,
   ]));
+}
+
+// Uma linha por produto vendido (a planilha fica fácil de somar e filtrar).
+const FORMAS = { pix: 'Pix', dinheiro: 'Dinheiro', debito: 'Débito', credito: 'Crédito', link: 'Link de pagamento', fiado: 'Fiado' };
+export function csvVendas(vendas) {
+  const cab = ['data_hora', 'venda', 'produto', 'codigo', 'quantidade', 'preco_unitario', 'total_item', 'desconto_venda',
+    'total_venda', 'lucro_venda', 'forma_pagamento', 'parcelas', 'cliente', 'observacao', 'cancelada'];
+  const linhas = [];
+  for (const v of vendas) {
+    for (const i of v.itens) {
+      linhas.push([
+        dataBr(v.dataHora), v.numero, `${i.nome}${i.variacao ? ` ${i.variacao}` : ''}`, i.codigo, i.quantidade,
+        reaisBr(i.precoUnit), reaisBr(i.precoUnit * i.quantidade), reaisBr(v.desconto), reaisBr(v.total),
+        reaisBr(v.lucro), FORMAS[v.forma] || v.forma, v.parcelasCartao || v.parcelasFiado || '', v.clienteNome || '',
+        v.observacao, v.cancelada ? `sim (${dataBr(v.cancelada.em)})` : '',
+      ]);
+    }
+  }
+  return gerarCsv(cab, linhas);
 }

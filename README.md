@@ -20,6 +20,14 @@ Sistema de gestão da Felipão Suplementos
 - **Backup**: planilha do fiado (todos os lançamentos) e lista de quem deve.
 - **Começar do zero**: apaga o fiado (pede para digitar APAGAR e baixa um backup antes) para importar uma planilha nova. O estoque não é mexido.
 
+## Módulo 3 — Vendas (pronto)
+- Aba **Vender** no meio da barra de baixo, com o total vendido no dia, o lucro estimado e o número de vendas, além da soma por forma de pagamento. Dá para ver outros dias.
+- **Nova venda**: busca o produto (com foto), ajusta a quantidade e o preço, e aplica desconto. Produto sem preço guarda o preço usado na venda.
+- Pagamento por **Pix, dinheiro (com troco), débito, crédito (até 12x), link de pagamento ou fiado**. No fiado, escolhe um cliente da lista ou digita um novo, à vista ou parcelado.
+- Ao finalizar, **o estoque baixa sozinho** e a venda fica registrada com data, hora e lucro (preço − custo). No fiado, a dívida entra na ficha do cliente.
+- **Cancelar venda**: devolve os produtos ao estoque e cancela o fiado dela. Nada é apagado.
+- Botão **🛒 Vender** na ficha do produto e **backup** em planilha de vendas.
+
 Os dados ficam guardados no próprio celular (funciona sem internet). Faça backup com frequência.
 
 ## Como abrir

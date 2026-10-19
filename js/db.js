@@ -5,9 +5,10 @@
 //   fotos       — fotos dos produtos (separadas para a lista carregar rápido)
 //   clientes    — clientes (nome, WhatsApp, observação)
 //   lancamentos — fiado e pagamentos de cada cliente (nunca apagados; só cancelados)
+//   vendas      — cada venda com itens, forma de pagamento e lucro (nunca apagadas; só canceladas)
 
 const NOME_BANCO = 'gestao-felipao';
-const VERSAO = 2;
+const VERSAO = 3;
 
 let bancoPromessa = null;
 
@@ -34,6 +35,10 @@ function abrir() {
       if (!db.objectStoreNames.contains('lancamentos')) {
         const lanc = db.createObjectStore('lancamentos', { keyPath: 'id' });
         lanc.createIndex('clienteId', 'clienteId', { unique: false });
+      }
+      if (!db.objectStoreNames.contains('vendas')) {
+        const vendas = db.createObjectStore('vendas', { keyPath: 'id' });
+        vendas.createIndex('dia', 'dia', { unique: false });
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -259,4 +264,81 @@ export async function limparFiado() {
   tx.objectStore('clientes').clear();
   tx.objectStore('lancamentos').clear();
   await concluir(tx);
+}
+
+// ---------- Vendas ----------
+
+export async function listarVendas(diaDe, diaAte = diaDe) {
+  const db = await abrir();
+  const loja = db.transaction('vendas').objectStore('vendas');
+  const lista = diaDe
+    ? await pedido(loja.index('dia').getAll(IDBKeyRange.bound(diaDe, diaAte)))
+    : await pedido(loja.getAll());
+  return lista.sort((a, b) => b.dataHora.localeCompare(a.dataHora));
+}
+
+// Registra a venda, baixa o estoque e (no fiado) lança a dívida do cliente — tudo junto.
+// `clienteNovo`: cliente criado na hora da venda. `lancamentos`: fiado (já com valores e vencimentos).
+export async function registrarVenda(venda, { clienteNovo = null, lancamentos = [] } = {}) {
+  const db = await abrir();
+  const tx = db.transaction(['vendas', 'produtos', 'movimentos', 'clientes', 'lancamentos'], 'readwrite');
+  const dataHora = agora();
+  const vendas = tx.objectStore('vendas');
+  const produtos = tx.objectStore('produtos');
+  const numero = (await pedido(vendas.count())) + 1;
+  const salvar = { ...venda, id: venda.id || novoId(), numero, dataHora, cancelada: null };
+
+  for (const item of salvar.itens) {
+    const p = await pedido(produtos.get(item.produtoId));
+    if (!p) continue;
+    // Quantidade "a conferir" continua sem número; senão desconta (sem ficar negativo).
+    const nova = p.quantidade == null ? null : Math.max(0, p.quantidade - item.quantidade);
+    // Produto sem preço no cadastro: guarda o preço usado na venda.
+    const preco = p.preco == null && item.salvarPreco ? item.precoUnit / 100 : p.preco;
+    tx.objectStore('movimentos').put({
+      id: novoId(), produtoId: p.id, produtoNome: p.nome, tipo: 'venda', motivo: `Venda nº ${numero}`,
+      quantidadeAntes: p.quantidade, quantidadeDepois: nova, diferenca: -item.quantidade, dataHora, vendaId: salvar.id,
+    });
+    produtos.put({ ...p, quantidade: nova, preco, atualizadoEm: dataHora });
+  }
+  if (clienteNovo) tx.objectStore('clientes').put({ ...clienteNovo, criadoEm: dataHora, atualizadoEm: dataHora });
+  salvar.lancamentoIds = [];
+  for (const l of lancamentos) {
+    const id = novoId();
+    salvar.lancamentoIds.push(id);
+    tx.objectStore('lancamentos').put({ ...l, id, vendaId: salvar.id, registradoEm: dataHora, cancelado: null });
+  }
+  vendas.put(salvar);
+  await concluir(tx);
+  return salvar;
+}
+
+// Cancela a venda: devolve os produtos ao estoque e cancela o fiado dela. Nada é apagado.
+export async function cancelarVenda(id, motivo) {
+  const db = await abrir();
+  const tx = db.transaction(['vendas', 'produtos', 'movimentos', 'lancamentos'], 'readwrite');
+  const vendas = tx.objectStore('vendas');
+  const venda = await pedido(vendas.get(id));
+  if (!venda || venda.cancelada) { tx.abort(); return null; }
+  const dataHora = agora();
+  const produtos = tx.objectStore('produtos');
+  for (const item of venda.itens) {
+    const p = await pedido(produtos.get(item.produtoId));
+    if (!p) continue;
+    const nova = p.quantidade == null ? null : p.quantidade + item.quantidade;
+    tx.objectStore('movimentos').put({
+      id: novoId(), produtoId: p.id, produtoNome: p.nome, tipo: 'devolucao', motivo: `Venda nº ${venda.numero} cancelada`,
+      quantidadeAntes: p.quantidade, quantidadeDepois: nova, diferenca: item.quantidade, dataHora, vendaId: venda.id,
+    });
+    produtos.put({ ...p, quantidade: nova, atualizadoEm: dataHora });
+  }
+  const lancs = tx.objectStore('lancamentos');
+  for (const lid of venda.lancamentoIds || []) {
+    const l = await pedido(lancs.get(lid));
+    if (l && !l.cancelado) lancs.put({ ...l, cancelado: { em: dataHora, motivo: `Venda nº ${venda.numero} cancelada` } });
+  }
+  const cancelada = { ...venda, cancelada: { em: dataHora, motivo: motivo || '' } };
+  vendas.put(cancelada);
+  await concluir(tx);
+  return cancelada;
 }

@@ -176,7 +176,8 @@ function abrirCliente(id) {
         <div>${esc(descricaoLancamento(l))}
           <small>${dataCurta(l.data)}${l.dataAproximada ? ' (data aproximada)' : ''}${l.parcela ? ` · parcela ${esc(l.parcela)} · vence ${dataCurta(l.vencimento)}` : ''} · registrado em ${dataHora(l.registradoEm)}</small>
           ${l.cancelado ? `<small class="erros">Cancelado em ${dataHora(l.cancelado.em)}${l.cancelado.motivo ? ` — ${esc(l.cancelado.motivo)}` : ''}</small>`
-            : `<button class="btn-texto btn-cancelar" data-cancelar="${l.id}">cancelar lançamento</button>`}
+            : l.vendaId ? '<small>Veio de uma venda: para desfazer, cancele a venda na tela Vender.</small>'
+              : `<button class="btn-texto btn-cancelar" data-cancelar="${l.id}">cancelar lançamento</button>`}
         </div>
         <span class="dif ${l.tipo === 'fiado' ? 'menos' : 'mais'}">${l.tipo === 'fiado' ? '+' : '−'}${moedaCentavos(l.valor)}</span>
       </li>`).join('')}</ul>`
@@ -556,5 +557,6 @@ $('#btn-novo-cliente').addEventListener('click', () => abrirFormCliente());
 
 // Recalcula ao abrir a tela (muda "dias de atraso" quando vira o dia).
 document.addEventListener('tela-aberta', (e) => { if (e.detail === 'clientes') carregar(); });
+document.addEventListener('dados-mudaram', () => carregar());
 
 carregar();
