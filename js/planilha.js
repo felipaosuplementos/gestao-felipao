@@ -94,7 +94,9 @@ export function linhasParaProdutos(linhas) {
     // Nesse caso vai para "tamanho" e o campo de sabor fica livre.
     if (/^(\d|sach)/i.test(variacao)) { tamanho = variacao; variacao = ''; }
     let quantidade = lerInteiro(pegar('quantidade'));
-    if (quantidade == null && semAcento(pegar('situacao')) === 'sem estoque') quantidade = 0;
+    // "Sem estoque" no catálogo só vale para produto novo; não zera quem já está cadastrado.
+    const quantidadePelaSituacao = quantidade == null && semAcento(pegar('situacao')) === 'sem estoque';
+    if (quantidadePelaSituacao) quantidade = 0;
     itens.push({
       codigo: pegar('codigo'),
       nome,
@@ -107,6 +109,7 @@ export function linhasParaProdutos(linhas) {
       preco: lerNumero(pegar('preco')),
       quantidade,
       estoqueMinimo: lerInteiro(pegar('estoqueMinimo')),
+      quantidadePelaSituacao,
     });
   });
   return { itens, erros };

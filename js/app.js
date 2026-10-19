@@ -436,14 +436,16 @@ async function prepararImportacao(texto, origem) {
   for (const item of itens) {
     const anterior = (item.codigo && porCodigo.get(item.codigo)) || porChave.get(chaveProduto(item));
     if (!anterior) {
-      novos.push({ produto: { ...item, id: db.novoId(), codigo: item.codigo || `p-${db.novoId().slice(0, 8)}`, arquivado: false }, anterior: null });
+      const { quantidadePelaSituacao, ...dados } = item;
+      novos.push({ produto: { ...dados, id: db.novoId(), codigo: item.codigo || `p-${db.novoId().slice(0, 8)}`, arquivado: false }, anterior: null });
       continue;
     }
     // Só atualiza o que veio preenchido na planilha; campo vazio não apaga nada.
     const produto = { ...anterior };
     const mudou = [];
     for (const [campo, valor] of Object.entries(item)) {
-      if (valor === '' || valor == null) continue;
+      if (valor === '' || valor == null || campo === 'quantidadePelaSituacao') continue;
+      if (campo === 'quantidade' && item.quantidadePelaSituacao) continue;
       if (produto[campo] !== valor) { produto[campo] = valor; mudou.push(campo); }
     }
     if (mudou.length) atualizados.push({ produto, anterior, mudou });
