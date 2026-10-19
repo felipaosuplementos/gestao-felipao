@@ -442,3 +442,54 @@ form select {
 .menu-titulo { margin: 8px 0 -2px; font-size: 13px; font-weight: 700; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .04em; }
 .previa .aviso, dialog .aviso { margin: 10px 0; }
 .btn-perigo-claro { color: var(--vermelho); border-color: #f3c4c4; }
+
+/* Vendas */
+.abas-3 { grid-template-columns: 1fr 1fr 1fr; }
+.aba-destaque span { font-weight: 800; }
+.aba-destaque[aria-current="page"] { background: var(--azul-claro); }
+.filtro-dia { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+.filtro-dia input { flex: 1; padding: 9px 12px; border-radius: 10px; border: 0; font-size: 16px; background: var(--branco); color: var(--texto); }
+.filtro-dia .btn-icone { color: var(--branco); font-size: 30px; }
+.filtro-dia .btn-icone:disabled { opacity: .35; }
+.formas-resumo { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.formas-resumo .etiqueta { font-size: 13px; padding: 4px 10px; background: var(--branco); border: 1px solid var(--borda); }
+.etiqueta-perigo { background: var(--vermelho-claro); color: var(--vermelho); }
+.item-cancelado { opacity: .55; }
+.item-cancelado .saldo { text-decoration: line-through; }
+dialog.folha-alta { max-height: 100vh; height: 100%; border-radius: 0; }
+@media (min-width: 700px) { dialog.folha-alta { height: auto; max-height: 94vh; border-radius: 20px; } }
+#venda-busca {
+  width: 100%;
+  padding: 14px;
+  border: 2px solid var(--azul);
+  border-radius: 12px;
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+.resultados { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
+.resultado {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; cursor: pointer;
+  border: 1px solid var(--borda); border-radius: 12px; background: var(--branco); padding: 8px;
+}
+.resultado:active { background: var(--azul-claro); }
+.resultado .miniatura { width: 44px; height: 44px; font-size: 18px; }
+.resultado-preco { text-align: right; font-weight: 700; color: var(--azul-escuro); white-space: nowrap; }
+.resultado-preco small { display: block; font-weight: 400; color: var(--texto-suave); font-size: 12px; }
+.vazio-preco { color: var(--laranja); font-weight: 500; }
+.carrinho { list-style: none; margin: 0 0 8px; padding: 0; }
+.carrinho-item { border-bottom: 1px solid var(--borda); padding: 10px 0; }
+.carrinho-linha { display: flex; align-items: center; gap: 8px; }
+.carrinho-linha + .carrinho-linha { margin-top: 6px; }
+.contador-pequeno { margin: 0; gap: 6px; }
+.contador-pequeno .btn { min-width: 44px; min-height: 44px; padding: 0; font-size: 22px; }
+.carrinho-qtd { min-width: 28px; text-align: center; font-size: 20px; font-weight: 700; }
+.carrinho-preco { display: flex; align-items: center; gap: 4px; margin: 0 !important; font-size: 14px; flex: 1; }
+.carrinho-preco input { width: 100%; max-width: 110px; margin: 0 !important; padding: 10px !important; }
+.carrinho-total { white-space: nowrap; font-size: 16px; }
+.rotulo-campo { font-size: 14px; color: var(--texto-suave); margin: 4px 0 6px; }
+.chips-grandes .chip { padding: 10px 14px; font-size: 15px; }
+.folha-acoes-venda { grid-template-columns: 1fr 1.2fr; align-items: center; border-top: 1px solid var(--borda); }
+.venda-total small { display: block; font-size: 12px; color: var(--texto-suave); }
+.venda-total strong { font-size: 24px; color: var(--azul-escuro); }
+.venda-total .lucro { margin: 0; color: var(--verde); }
+.btn-largo { width: 100%; margin: 8px 0 16px; }

@@ -77,8 +77,40 @@
     <button id="btn-novo-cliente" class="fab">＋ Novo cliente</button>
   </section>
 
-  <nav class="abas" aria-label="Telas">
+  <section id="tela-vendas" class="tela" hidden>
+    <header class="topo">
+      <div class="topo-linha">
+        <div>
+          <div class="topo-loja">Felipão Suplementos</div>
+          <h1>Vendas</h1>
+        </div>
+        <button class="btn-icone btn-abrir-menu" aria-label="Menu">☰</button>
+      </div>
+      <div class="resumo-fiado">
+        <div><small id="vendas-rotulo-dia">Vendido hoje</small><strong id="vendas-total">R$ 0,00</strong></div>
+        <div><small>Lucro estimado</small><strong id="vendas-lucro">R$ 0,00</strong></div>
+        <div><small>Vendas</small><strong id="vendas-quantidade">0</strong></div>
+      </div>
+      <div class="filtro-dia">
+        <button class="btn-icone" id="dia-anterior" aria-label="Dia anterior">‹</button>
+        <input id="vendas-dia" type="date" aria-label="Dia">
+        <button class="btn-icone" id="dia-seguinte" aria-label="Dia seguinte">›</button>
+      </div>
+    </header>
+    <main>
+      <div id="vendas-formas" class="formas-resumo"></div>
+      <div id="vazio-vendas" class="vazio" hidden>
+        <p><strong>Nenhuma venda neste dia.</strong></p>
+        <button class="btn btn-primario" id="btn-venda-vazio">＋ Nova venda</button>
+      </div>
+      <ul id="lista-vendas" class="lista"></ul>
+    </main>
+    <button id="btn-nova-venda" class="fab">＋ Nova venda</button>
+  </section>
+
+  <nav class="abas abas-3" aria-label="Telas">
     <button class="aba" data-tela="estoque" aria-current="page">📦<span>Estoque</span></button>
+    <button class="aba aba-destaque" data-tela="vendas">🛒<span>Vender</span></button>
     <button class="aba" data-tela="clientes">👥<span>Clientes</span></button>
   </nav>
 
@@ -178,6 +210,8 @@
       <button class="btn" id="menu-importar-devedores">⬆️ Importar planilha de devedores</button>
       <button class="btn" id="menu-clientes-arquivados">🗂️ Ver clientes arquivados</button>
       <button class="btn btn-perigo-claro" id="menu-fiado-zero">🧹 Apagar o fiado e começar do zero</button>
+      <p class="menu-titulo">Vendas</p>
+      <button class="btn" id="menu-exportar-vendas">⬇️ Backup: baixar planilha de vendas</button>
       <p id="menu-info" class="menu-info"></p>
     </div>
   </dialog>
@@ -273,6 +307,68 @@
     </div>
   </dialog>
 
+  <!-- Nova venda -->
+  <dialog id="dlg-venda" class="folha folha-alta">
+    <form id="form-venda" method="dialog" novalidate>
+      <div class="folha-topo">
+        <h2>Nova venda</h2>
+        <button type="button" class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+      </div>
+      <input id="venda-busca" type="search" placeholder="🔍 Buscar produto para adicionar…" autocomplete="off">
+      <ul id="venda-resultados" class="resultados"></ul>
+      <ul id="venda-carrinho" class="carrinho"></ul>
+      <p id="venda-carrinho-vazio" class="descricao">Busque e toque nos produtos para adicionar.</p>
+
+      <div id="venda-pagamento" hidden>
+        <label>Desconto (R$)<input name="desconto" inputmode="decimal" placeholder="0,00" autocomplete="off"></label>
+        <p class="rotulo-campo">Forma de pagamento</p>
+        <div id="venda-formas" class="chips chips-motivo chips-grandes"></div>
+        <div id="venda-credito" hidden>
+          <label>Parcelas no cartão<select name="parcelasCartao">
+            <option value="1">À vista</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+            <option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
+          </select></label>
+        </div>
+        <div id="venda-dinheiro" hidden>
+          <label>Valor recebido (R$)<input name="recebido" inputmode="decimal" placeholder="0,00" autocomplete="off"></label>
+          <p id="venda-troco" class="lucro"></p>
+        </div>
+        <div id="venda-fiado" hidden>
+          <label>Cliente<input name="cliente" list="venda-lista-clientes" placeholder="Nome do cliente" autocomplete="off"></label>
+          <datalist id="venda-lista-clientes"></datalist>
+          <p id="venda-cliente-info" class="descricao"></p>
+          <div class="duas">
+            <label>Parcelas<select name="parcelasFiado">
+              <option value="1">À vista (sem parcelas)</option>
+              <option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+            </select></label>
+            <label id="venda-venc-rotulo" hidden>1º vencimento<input name="vencimento" type="date"></label>
+          </div>
+          <ul id="venda-parcelas" class="previa"></ul>
+        </div>
+        <label>Observação<input name="observacao" placeholder="Opcional" autocomplete="off"></label>
+      </div>
+
+      <div class="folha-acoes folha-acoes-venda">
+        <div class="venda-total">
+          <small id="venda-subtotal"></small>
+          <strong id="venda-total">R$ 0,00</strong>
+          <small id="venda-lucro" class="lucro"></small>
+        </div>
+        <button type="submit" id="venda-finalizar" class="btn btn-primario" disabled>Finalizar venda</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Detalhe da venda -->
+  <dialog id="dlg-venda-detalhe" class="folha">
+    <div class="folha-topo">
+      <h2 id="venda-detalhe-titulo">Venda</h2>
+      <button class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+    </div>
+    <div id="venda-detalhe"></div>
+  </dialog>
+
   <!-- Confirmação -->
   <dialog id="dlg-confirmar" class="folha folha-baixa">
     <h2 id="confirmar-titulo"></h2>
@@ -288,5 +384,6 @@
 
   <script type="module" src="js/app.js"></script>
   <script type="module" src="js/clientes.js"></script>
+  <script type="module" src="js/vendas.js"></script>
 </body>
 </html>

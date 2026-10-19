@@ -1,8 +1,8 @@
 // Permite abrir o sistema mesmo sem internet.
 // Sempre tenta a versão mais nova primeiro; sem internet, usa a cópia guardada.
-const CACHE = 'felipao-v4';
+const CACHE = 'felipao-v5';
 const ARQUIVOS = [
-  './', 'index.html', 'css/estilo.css', 'js/app.js', 'js/db.js', 'js/planilha.js', 'js/comum.js', 'js/clientes.js', 'js/fiado.js',
+  './', 'index.html', 'css/estilo.css', 'js/app.js', 'js/db.js', 'js/planilha.js', 'js/comum.js', 'js/clientes.js', 'js/fiado.js', 'js/vendas.js', 'js/venda-calc.js',
   'manifest.webmanifest', 'icones/icone.svg', 'icones/icone-192.png', 'icones/icone-180.png',
   'dados/catalogo-felipao.csv', 'fotos/indice.json',
 ];
