@@ -196,6 +196,7 @@ async function abrirProduto(id) {
     </div>
     <div class="acoes-produto">
       <button class="btn" data-acao="editar">✏️ Editar</button>
+      ${p.arquivado ? '' : '<button class="btn btn-primario" data-acao="vender">🛒 Vender</button>'}
       <button class="btn" data-acao="duplicar">➕ Outro sabor</button>
       <button class="btn" data-acao="${p.arquivado ? 'restaurar' : 'arquivar'}">${p.arquivado ? '♻️ Restaurar' : '🗂️ Arquivar'}</button>
     </div>
@@ -217,6 +218,10 @@ $('#produto-conteudo').addEventListener('click', async (e) => {
   if (!acao) return;
   const p = produtoAberto;
   if (acao === 'editar') abrirFormulario(p);
+  if (acao === 'vender') {
+    $('#dlg-produto').close();
+    document.dispatchEvent(new CustomEvent('vender-produto', { detail: p.id }));
+  }
   if (acao === 'duplicar') {
     abrirFormulario({ ...p, id: null, codigo: '', variacao: '', quantidade: null, temFoto: false, arquivado: false, criadoEm: null }, p.id);
   }
@@ -555,7 +560,10 @@ document.querySelector('.abas').addEventListener('click', (e) => {
   if (aba) mostrarTela(aba.dataset.tela);
 });
 document.addEventListener('mostrar-tela', (e) => mostrarTela(e.detail));
-mostrarTela(lerPreferencia('tela') === 'clientes' ? 'clientes' : 'estoque');
+mostrarTela(['clientes', 'vendas'].includes(lerPreferencia('tela')) ? lerPreferencia('tela') : 'estoque');
+// Venda feita ou cancelada muda o estoque: recarrega a lista.
+document.addEventListener('dados-mudaram', () => carregar());
+document.addEventListener('tela-aberta', (e) => { if (e.detail === 'estoque') carregar(); });
 
 document.querySelectorAll('.btn-abrir-menu').forEach((b) => b.addEventListener('click', () => {
   const ultimo = lerPreferencia('ultimoBackup');
