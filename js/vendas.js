@@ -410,6 +410,7 @@ $('#dia-anterior').addEventListener('click', () => mudarDia(-1));
 $('#dia-seguinte').addEventListener('click', () => mudarDia(1));
 
 document.addEventListener('tela-aberta', (e) => { if (e.detail === 'vendas') carregar(); });
+document.addEventListener('dados-mudaram', () => { fotos.clear(); carregar(); });
 // Botão "Vender" na ficha do produto.
 document.addEventListener('vender-produto', async (e) => {
   document.dispatchEvent(new CustomEvent('mostrar-tela', { detail: 'vendas' }));

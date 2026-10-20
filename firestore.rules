@@ -1,0 +1,14 @@
+rules_version = '2';
+
+// Só a conta Google do Felipão lê e grava, e só dentro da pasta dela.
+// Troque o e-mail abaixo pelo da conta escolhida antes de publicar as regras.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /usuarios/{uid}/{documento=**} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == uid
+        && request.auth.token.email == 'EMAIL_DO_FELIPAO'
+        && request.auth.token.email_verified == true;
+    }
+  }
+}
