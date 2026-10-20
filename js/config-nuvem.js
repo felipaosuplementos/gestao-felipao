@@ -5,4 +5,4 @@
 export const firebaseConfig = null;
 
 // Conta Google que pode entrar no sistema.
-export const emailPermitido = '';
+export const emailPermitido = 'passossuplementos@gmail.com';
