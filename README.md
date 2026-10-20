@@ -28,12 +28,12 @@ Sistema de gestão da Felipão Suplementos
 - **Cancelar venda**: devolve os produtos ao estoque e cancela o fiado dela. Nada é apagado.
 - Botão **🛒 Vender** na ficha do produto e **backup** em planilha de vendas.
 
-## Sincronização e segurança (pronta, falta ligar)
+## Sincronização e segurança (ligada)
 - Entrada com a **conta Google** do Felipão. Os dados ficam guardados na nuvem (Firebase) e aparecem no computador e no celular.
 - Cada aparelho guarda uma cópia e **funciona sem internet**. O que for feito offline sobe sozinho quando a conexão voltar.
 - Se o Chrome for limpo ou o aparelho trocado, é só entrar de novo com a conta Google que tudo volta.
 - Só a conta autorizada lê e grava os dados (regras em `firestore.rules`).
-- Para ligar: preencher `js/config-nuvem.js` e publicar as regras no Firestore com o e-mail certo.
+- Configuração em `js/config-nuvem.js`; regras do Firestore em `firestore.rules`. Se o login falhar, dá para "Usar só neste aparelho por enquanto".
 
 Os dados ficam guardados no próprio celular (funciona sem internet). Faça backup com frequência.
 
