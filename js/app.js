@@ -566,7 +566,8 @@ mostrarTela(['clientes', 'vendas'].includes(lerPreferencia('tela')) ? lerPrefere
 // Venda feita ou cancelada muda o estoque: recarrega a lista.
 document.addEventListener('dados-mudaram', () => {
   // Pode ter chegado foto nova da nuvem: refaz o cache das fotos.
-  for (const url of estado.fotos.values()) if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+  const antigas = [...estado.fotos.values()].filter((url) => url.startsWith('blob:'));
+  setTimeout(() => antigas.forEach((url) => URL.revokeObjectURL(url)), 10000); // depois que a tela já trocou
   estado.fotos.clear();
   carregar();
 });
