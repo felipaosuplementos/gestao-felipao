@@ -13,11 +13,23 @@
   <link rel="stylesheet" href="css/estilo.css">
 </head>
 <body>
+  <!-- Entrar com a conta Google (só aparece quando a nuvem está ligada) -->
+  <div id="tela-login" class="tela-login" hidden>
+    <div class="login-caixa">
+      <img src="icones/icone.svg" alt="" width="72" height="72">
+      <h1>Gestão Felipão</h1>
+      <p>Entre com <strong id="login-email">a sua conta Google</strong> para acessar o sistema.</p>
+      <p class="descricao">Seus dados ficam guardados com segurança na nuvem e aparecem no computador e no celular. Mesmo sem internet, o sistema continua funcionando.</p>
+      <button id="btn-entrar-google" class="btn btn-primario btn-largo">Entrar com Google</button>
+      <p id="login-erro" class="erros"></p>
+    </div>
+  </div>
+
   <section id="tela-estoque" class="tela">
   <header class="topo">
     <div class="topo-linha">
       <div>
-        <div class="topo-loja">Felipão Suplementos</div>
+        <div class="topo-loja">Felipão Suplementos <span class="sync-status"></span></div>
         <h1>Estoque</h1>
       </div>
       <button id="btn-menu" class="btn-icone btn-abrir-menu" aria-label="Menu">☰</button>
@@ -49,7 +61,7 @@
     <header class="topo">
       <div class="topo-linha">
         <div>
-          <div class="topo-loja">Felipão Suplementos</div>
+          <div class="topo-loja">Felipão Suplementos <span class="sync-status"></span></div>
           <h1>Clientes e fiado</h1>
         </div>
         <button class="btn-icone btn-abrir-menu" aria-label="Menu">☰</button>
@@ -81,7 +93,7 @@
     <header class="topo">
       <div class="topo-linha">
         <div>
-          <div class="topo-loja">Felipão Suplementos</div>
+          <div class="topo-loja">Felipão Suplementos <span class="sync-status"></span></div>
           <h1>Vendas</h1>
         </div>
         <button class="btn-icone btn-abrir-menu" aria-label="Menu">☰</button>
@@ -196,6 +208,11 @@
       <button class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
     </div>
     <div class="menu">
+      <div id="menu-nuvem" hidden>
+        <p class="menu-titulo">Conta e nuvem</p>
+        <p id="menu-nuvem-info" class="menu-info"></p>
+        <button class="btn" id="menu-sair">🚪 Sair desta conta</button>
+      </div>
       <p class="menu-titulo">Estoque</p>
       <button class="btn" id="menu-exportar">⬇️ Backup: baixar planilha de produtos</button>
       <button class="btn" id="menu-historico">⬇️ Baixar histórico de estoque</button>
@@ -369,6 +386,13 @@
     <div id="venda-detalhe"></div>
   </dialog>
 
+  <!-- Primeira sincronização -->
+  <dialog id="dlg-nuvem" class="folha folha-baixa">
+    <h2 id="nuvem-titulo" class="nuvem-titulo"></h2>
+    <p id="nuvem-texto"></p>
+    <div id="nuvem-opcoes" class="menu"></div>
+  </dialog>
+
   <!-- Confirmação -->
   <dialog id="dlg-confirmar" class="folha folha-baixa">
     <h2 id="confirmar-titulo"></h2>
@@ -385,5 +409,6 @@
   <script type="module" src="js/app.js"></script>
   <script type="module" src="js/clientes.js"></script>
   <script type="module" src="js/vendas.js"></script>
+  <script type="module" src="js/nuvem.js"></script>
 </body>
 </html>

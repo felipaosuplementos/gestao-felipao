@@ -564,12 +564,17 @@ document.querySelector('.abas').addEventListener('click', (e) => {
 document.addEventListener('mostrar-tela', (e) => mostrarTela(e.detail));
 mostrarTela(['clientes', 'vendas'].includes(lerPreferencia('tela')) ? lerPreferencia('tela') : 'estoque');
 // Venda feita ou cancelada muda o estoque: recarrega a lista.
-document.addEventListener('dados-mudaram', () => carregar());
+document.addEventListener('dados-mudaram', () => {
+  // Pode ter chegado foto nova da nuvem: refaz o cache das fotos.
+  for (const url of estado.fotos.values()) if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+  estado.fotos.clear();
+  carregar();
+});
 document.addEventListener('tela-aberta', (e) => { if (e.detail === 'estoque') carregar(); });
 
 document.querySelectorAll('.btn-abrir-menu').forEach((b) => b.addEventListener('click', () => {
   const ultimo = lerPreferencia('ultimoBackup');
-  $('#menu-info').textContent = `${estado.produtos.length} produtos cadastrados. ${ultimo ? `Último backup: ${dataHora(ultimo)}.` : 'Nenhum backup feito ainda.'} Os dados ficam guardados neste aparelho.`;
+  $('#menu-info').textContent = `${estado.produtos.length} produtos cadastrados. ${ultimo ? `Último backup: ${dataHora(ultimo)}.` : 'Nenhum backup feito ainda.'} ${document.body.classList.contains('com-nuvem') ? 'Os dados estão guardados na nuvem.' : 'Os dados ficam guardados neste aparelho.'}`;
   $('#dlg-menu').showModal();
 }));
 document.addEventListener('click', (e) => {
