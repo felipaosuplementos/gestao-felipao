@@ -47,9 +47,39 @@ function abrir() {
   return bancoPromessa;
 }
 
+// ---------- Aviso de mudanças (usado pela sincronização com a nuvem) ----------
+// Toda gravação feita pelas funções abaixo é anotada; quando a operação termina,
+// quem estiver ouvindo (a sincronização) recebe a lista do que mudou.
+
+const ouvintes = new Set();
+export function aoMudar(fn) { ouvintes.add(fn); return () => ouvintes.delete(fn); }
+
+// Abre uma transação de gravação que anota cada put/delete.
+function escrever(db, lojas) {
+  const tx = db.transaction(lojas, 'readwrite');
+  const mudancas = [];
+  const abrirLoja = tx.objectStore.bind(tx);
+  tx.objectStore = (nome) => {
+    const loja = abrirLoja(nome);
+    return new Proxy(loja, {
+      get(alvo, prop) {
+        if (prop === 'put') return (valor, chave) => { mudancas.push({ loja: nome, valor, chave }); return alvo.put(valor, chave); };
+        if (prop === 'delete') return (chave) => { mudancas.push({ loja: nome, chave, removido: true }); return alvo.delete(chave); };
+        const v = alvo[prop];
+        return typeof v === 'function' ? v.bind(alvo) : v;
+      },
+    });
+  };
+  tx.mudancas = mudancas;
+  return tx;
+}
+
 function concluir(tx) {
   return new Promise((resolve, reject) => {
-    tx.oncomplete = () => resolve();
+    tx.oncomplete = () => {
+      if (tx.mudancas?.length) for (const fn of ouvintes) { try { fn(tx.mudancas); } catch (e) { console.error(e); } }
+      resolve();
+    };
     tx.onerror = () => reject(tx.error);
     tx.onabort = () => reject(tx.error);
   });
@@ -109,7 +139,7 @@ function montarMovimento(produto, quantidadeNova, tipo, motivo, dataHora) {
 // na mesma operação (ou grava os dois, ou nenhum).
 export async function salvarProduto(produto, { tipo = 'correcao', motivo = '' } = {}) {
   const db = await abrir();
-  const tx = db.transaction(['produtos', 'movimentos'], 'readwrite');
+  const tx = escrever(db, ['produtos', 'movimentos']);
   const produtos = tx.objectStore('produtos');
   const anterior = await pedido(produtos.get(produto.id));
   const dataHora = agora();
@@ -131,7 +161,7 @@ export async function salvarProduto(produto, { tipo = 'correcao', motivo = '' } 
 // Entrada (+) ou saída (−) de estoque.
 export async function movimentarEstoque(produtoId, diferenca, tipo, motivo) {
   const db = await abrir();
-  const tx = db.transaction(['produtos', 'movimentos'], 'readwrite');
+  const tx = escrever(db, ['produtos', 'movimentos']);
   const produtos = tx.objectStore('produtos');
   const produto = await pedido(produtos.get(produtoId));
   if (!produto) throw new Error('Produto não encontrado');
@@ -147,7 +177,7 @@ export async function movimentarEstoque(produtoId, diferenca, tipo, motivo) {
 // Grava vários produtos de uma vez (importação). Tudo ou nada.
 export async function salvarVarios(itens, motivo) {
   const db = await abrir();
-  const tx = db.transaction(['produtos', 'movimentos'], 'readwrite');
+  const tx = escrever(db, ['produtos', 'movimentos']);
   const produtos = tx.objectStore('produtos');
   const movimentos = tx.objectStore('movimentos');
   const dataHora = agora();
@@ -166,7 +196,7 @@ export async function salvarVarios(itens, motivo) {
 
 export async function salvarFoto(produtoId, blob) {
   const db = await abrir();
-  const tx = db.transaction('fotos', 'readwrite');
+  const tx = escrever(db, 'fotos');
   tx.objectStore('fotos').put(blob, produtoId);
   await concluir(tx);
 }
@@ -178,7 +208,7 @@ export async function buscarFoto(produtoId) {
 
 export async function apagarFoto(produtoId) {
   const db = await abrir();
-  const tx = db.transaction('fotos', 'readwrite');
+  const tx = escrever(db, 'fotos');
   tx.objectStore('fotos').delete(produtoId);
   await concluir(tx);
 }
@@ -205,7 +235,7 @@ export async function buscarCliente(id) {
 
 export async function salvarCliente(cliente) {
   const db = await abrir();
-  const tx = db.transaction('clientes', 'readwrite');
+  const tx = escrever(db, 'clientes');
   const dataHora = agora();
   const salvar = { ...cliente, atualizadoEm: dataHora, criadoEm: cliente.criadoEm || dataHora };
   tx.objectStore('clientes').put(salvar);
@@ -222,7 +252,7 @@ export async function listarLancamentos(clienteId) {
 // Grava clientes novos e lançamentos de uma vez (tudo ou nada).
 export async function gravarFiado({ clientes = [], lancamentos = [] }) {
   const db = await abrir();
-  const tx = db.transaction(['clientes', 'lancamentos'], 'readwrite');
+  const tx = escrever(db, ['clientes', 'lancamentos']);
   const dataHora = agora();
   for (const c of clientes) {
     tx.objectStore('clientes').put({ ...c, criadoEm: c.criadoEm || dataHora, atualizadoEm: dataHora });
@@ -236,7 +266,7 @@ export async function gravarFiado({ clientes = [], lancamentos = [] }) {
 // Lançamento errado não é apagado: fica marcado como cancelado, com data e motivo.
 export async function cancelarLancamento(id, motivo) {
   const db = await abrir();
-  const tx = db.transaction('lancamentos', 'readwrite');
+  const tx = escrever(db, 'lancamentos');
   const loja = tx.objectStore('lancamentos');
   const lanc = await pedido(loja.get(id));
   if (!lanc || lanc.cancelado) { tx.abort(); return; }
@@ -247,7 +277,7 @@ export async function cancelarLancamento(id, motivo) {
 // Guarda a posição de cada valor na planilha de devedores (para a lista seguir a mesma ordem).
 export async function atualizarOrdemPlanilha(itens) {
   const db = await abrir();
-  const tx = db.transaction('lancamentos', 'readwrite');
+  const tx = escrever(db, 'lancamentos');
   const loja = tx.objectStore('lancamentos');
   for (const { id, ordemPlanilha } of itens) {
     const lanc = await pedido(loja.get(id));
@@ -260,9 +290,12 @@ export async function atualizarOrdemPlanilha(itens) {
 // Só é chamado depois de confirmação e de baixar o backup.
 export async function limparFiado() {
   const db = await abrir();
-  const tx = db.transaction(['clientes', 'lancamentos'], 'readwrite');
-  tx.objectStore('clientes').clear();
-  tx.objectStore('lancamentos').clear();
+  const tx = escrever(db, ['clientes', 'lancamentos']);
+  // Apaga um por um (e não tudo de uma vez) para a nuvem saber exatamente o que saiu.
+  for (const nome of ['clientes', 'lancamentos']) {
+    const loja = tx.objectStore(nome);
+    for (const chave of await pedido(loja.getAllKeys())) loja.delete(chave);
+  }
   await concluir(tx);
 }
 
@@ -281,7 +314,7 @@ export async function listarVendas(diaDe, diaAte = diaDe) {
 // `clienteNovo`: cliente criado na hora da venda. `lancamentos`: fiado (já com valores e vencimentos).
 export async function registrarVenda(venda, { clienteNovo = null, lancamentos = [] } = {}) {
   const db = await abrir();
-  const tx = db.transaction(['vendas', 'produtos', 'movimentos', 'clientes', 'lancamentos'], 'readwrite');
+  const tx = escrever(db, ['vendas', 'produtos', 'movimentos', 'clientes', 'lancamentos']);
   const dataHora = agora();
   const vendas = tx.objectStore('vendas');
   const produtos = tx.objectStore('produtos');
@@ -316,7 +349,7 @@ export async function registrarVenda(venda, { clienteNovo = null, lancamentos = 
 // Cancela a venda: devolve os produtos ao estoque e cancela o fiado dela. Nada é apagado.
 export async function cancelarVenda(id, motivo) {
   const db = await abrir();
-  const tx = db.transaction(['vendas', 'produtos', 'movimentos', 'lancamentos'], 'readwrite');
+  const tx = escrever(db, ['vendas', 'produtos', 'movimentos', 'lancamentos']);
   const vendas = tx.objectStore('vendas');
   const venda = await pedido(vendas.get(id));
   if (!venda || venda.cancelada) { tx.abort(); return null; }
@@ -341,4 +374,54 @@ export async function cancelarVenda(id, motivo) {
   vendas.put(cancelada);
   await concluir(tx);
   return cancelada;
+}
+
+// ---------- Para a sincronização ----------
+
+export const LOJAS = ['produtos', 'movimentos', 'fotos', 'clientes', 'lancamentos', 'vendas'];
+
+// Tudo o que está guardado neste aparelho (para enviar à nuvem na primeira vez).
+export async function lerTudo() {
+  const db = await abrir();
+  const tudo = {};
+  for (const nome of LOJAS) {
+    const loja = db.transaction(nome).objectStore(nome);
+    if (nome === 'fotos') {
+      const [chaves, valores] = await Promise.all([pedido(loja.getAllKeys()), pedido(loja.getAll())]);
+      tudo.fotos = chaves.map((chave, i) => ({ chave, valor: valores[i] }));
+    } else {
+      tudo[nome] = await pedido(loja.getAll());
+    }
+  }
+  return tudo;
+}
+
+export async function contarLocal() {
+  const db = await abrir();
+  const conta = {};
+  for (const nome of LOJAS) conta[nome] = await pedido(db.transaction(nome).objectStore(nome).count());
+  return conta;
+}
+
+// Grava o que veio da nuvem (sem avisar a sincronização, para não mandar de volta).
+// itens: [{ loja, chave, valor }] ou [{ loja, chave, removido: true }]
+export async function aplicarDaNuvem(itens) {
+  if (!itens.length) return;
+  const db = await abrir();
+  const tx = db.transaction([...new Set(itens.map((i) => i.loja))], 'readwrite');
+  for (const i of itens) {
+    const loja = tx.objectStore(i.loja);
+    if (i.removido) loja.delete(i.chave);
+    else if (i.loja === 'fotos') loja.put(i.valor, i.chave);
+    else loja.put(i.valor);
+  }
+  await concluir(tx);
+}
+
+// Apaga tudo deste aparelho (usado quando ele passa a usar só o que está na nuvem).
+export async function limparTudoLocal() {
+  const db = await abrir();
+  const tx = db.transaction(LOJAS, 'readwrite');
+  for (const nome of LOJAS) tx.objectStore(nome).clear();
+  await concluir(tx);
 }
