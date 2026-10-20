@@ -15,6 +15,7 @@ const emailLiberado = EMULADOR ? (params.get('emulador') || 'felipao@teste.com')
 const estado = {
   fb: null, auth: null, fs: null, usuario: null,
   pendentes: 0, situacao: 'desligada', paradas: [],
+  semNuvem: false, // escolheu "usar só neste aparelho" nesta vez
 };
 
 // Identifica este aparelho, para não regravar o que ele mesmo enviou.
@@ -203,6 +204,7 @@ async function primeiraVez() {
 // ---------- Entrar / sair ----------
 
 function mostrarLogin(mensagem = '') {
+  if (estado.semNuvem && !mensagem) return;
   $('#tela-login').hidden = false;
   $('#login-erro').textContent = mensagem;
   $('#login-email').textContent = emailLiberado || 'a sua conta Google';
@@ -215,6 +217,7 @@ async function aoEntrar(usuario) {
     return;
   }
   estado.usuario = usuario;
+  estado.semNuvem = false;
   $('#tela-login').hidden = true;
   document.body.classList.add('com-nuvem');
   mostrarSituacao('entrando');
@@ -268,6 +271,16 @@ async function iniciar() {
       }
     }
   });
+  $('#btn-sem-nuvem').addEventListener('click', () => {
+    estado.semNuvem = true;
+    $('#tela-login').hidden = true;
+    mostrarSituacao('desligada');
+  });
+  $('#menu-entrar').addEventListener('click', () => {
+    $('#dlg-menu').close();
+    estado.semNuvem = false;
+    mostrarLogin();
+  });
   $('#menu-sair').addEventListener('click', async () => {
     const ok = await confirmar('Sair da conta?', 'Para voltar a usar o sistema neste aparelho, é preciso entrar de novo com a sua conta Google. Nada é apagado da nuvem.', 'Sair', false);
     if (!ok) return;
@@ -284,6 +297,7 @@ async function iniciar() {
 // Informações da conta no menu.
 document.querySelectorAll('.btn-abrir-menu').forEach((b) => b.addEventListener('click', () => {
   $('#menu-nuvem').hidden = !estado.usuario;
+  $('#menu-entrar').hidden = !!estado.usuario || !config;
   if (estado.usuario) $('#menu-nuvem-info').textContent = `Conectado como ${estado.usuario.email}. ${TEXTOS[estado.situacao] || ''}`;
 }));
 

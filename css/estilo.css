@@ -507,3 +507,4 @@ body.com-nuvem #aviso-backup, body.com-nuvem #aviso-backup-clientes { display: n
 .login-caixa h1 { margin: 10px 0 6px; color: var(--azul-escuro); }
 .login-caixa img { border-radius: 16px; }
 .nuvem-titulo { margin: 16px 0 4px; }
+.btn-sem-nuvem { color: var(--texto-suave); text-decoration: underline; font-size: 14px; margin-top: 8px; cursor: pointer; }
