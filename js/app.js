@@ -547,7 +547,7 @@ $('#chips').addEventListener('click', (e) => {
 $('#filtro-categoria').addEventListener('change', (e) => { estado.categoria = e.target.value; render(); });
 $('#busca').addEventListener('input', (e) => { estado.busca = e.target.value; render(); });
 $('#btn-novo').addEventListener('click', () => abrirFormulario());
-// Barra de baixo: troca entre Estoque e Clientes.
+// Barra de baixo: troca entre as telas.
 function mostrarTela(tela) {
   document.querySelectorAll('.tela').forEach((el) => { el.hidden = el.id !== `tela-${tela}`; });
   document.querySelectorAll('.aba').forEach((b) => {
@@ -562,7 +562,7 @@ document.querySelector('.abas').addEventListener('click', (e) => {
   if (aba) mostrarTela(aba.dataset.tela);
 });
 document.addEventListener('mostrar-tela', (e) => mostrarTela(e.detail));
-mostrarTela(['clientes', 'vendas'].includes(lerPreferencia('tela')) ? lerPreferencia('tela') : 'estoque');
+mostrarTela(['clientes', 'vendas', 'tarefas'].includes(lerPreferencia('tela')) ? lerPreferencia('tela') : 'estoque');
 // Venda feita ou cancelada muda o estoque: recarrega a lista.
 document.addEventListener('dados-mudaram', () => {
   // Pode ter chegado foto nova da nuvem: refaz o cache das fotos.

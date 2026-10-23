@@ -511,3 +511,134 @@ body.com-nuvem #aviso-backup, body.com-nuvem #aviso-backup-clientes { display: n
 .lembrete-caixa { background: var(--branco); border-radius: 10px; padding: 8px 10px; margin: 6px 0 10px; font-weight: 600; color: var(--azul-escuro); }
 .lembrete-caixa .btn-texto { color: var(--verde); margin-left: 8px; font-weight: 700; cursor: pointer; }
 #texto-cobranca { display: block; width: 100%; padding: 12px; border: 1px solid var(--borda); border-radius: 10px; font-size: 16px; margin-bottom: 6px; }
+
+/* Tarefas */
+.abas-4 { grid-template-columns: repeat(4, 1fr); }
+.aba { position: relative; }
+.aba-contador {
+  position: absolute;
+  top: 4px;
+  left: calc(50% + 8px);
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--vermelho);
+  color: var(--branco);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+}
+.topo-data { font-size: 14px; opacity: .85; }
+.topo-data::first-letter { text-transform: uppercase; }
+.nova-tarefa { margin-top: 10px; }
+.nova-tarefa-linha { display: flex; gap: 8px; }
+.nova-tarefa input#nova-tarefa-texto {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 12px;
+  font-size: 17px;
+  background: var(--branco);
+  color: var(--texto);
+}
+.btn-adicionar {
+  flex: none;
+  width: 52px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--azul-escuro);
+  color: var(--branco);
+  font-size: 26px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.nova-tarefa .chips { margin-top: 10px; align-items: center; }
+.nova-tarefa .chip-hora { display: inline-flex; margin: 0; gap: 2px; padding: 0 4px 0 12px; font-size: 14px; color: var(--branco); cursor: pointer; }
+.nova-tarefa .chip-hora input {
+  width: auto;
+  margin: 0;
+  padding: 6px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--branco);
+  font-size: 14px;
+  min-width: 70px;
+  color-scheme: dark;
+}
+.nova-tarefa input.nova-tarefa-data {
+  display: block;
+  width: 100%;
+  margin: 8px 0 0;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 10px;
+  font-size: 16px;
+  background: var(--branco);
+  color: var(--texto);
+}
+.grupo-titulo { display: flex; align-items: center; gap: 8px; margin: 18px 2px 8px; font-size: 17px; color: var(--azul-escuro); }
+.grupo-titulo:first-child { margin-top: 4px; }
+.grupo-titulo span { font-size: 13px; padding: 1px 8px; border-radius: 999px; background: var(--azul-claro); }
+.grupo-titulo.grupo-atrasado { color: var(--vermelho); }
+.grupo-titulo.grupo-atrasado span { background: var(--vermelho-claro); }
+.lista-tarefas { gap: 8px; }
+.tarefa {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--branco);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 4px 8px 4px 4px;
+}
+.tarefa-check {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.tarefa-check::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--azul);
+}
+.tarefa-check.marcada::before { content: "✓"; background: var(--verde); border-color: var(--verde); color: var(--branco); font-weight: 700; font-size: 15px; line-height: 24px; text-align: center; }
+.tarefa-texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.tarefa-nome { font-size: 16px; overflow-wrap: anywhere; }
+.tarefa-cobranca { border-color: #f6d9a8; background: #fffaf1; }
+.btn-cobrar { flex: none; min-height: 44px; min-width: 48px; padding: 0 10px; font-size: 20px; text-decoration: none; }
+.tarefa-feita .tarefa-nome { text-decoration: line-through; color: var(--texto-suave); }
+.tarefa-feita .tarefa-texto { cursor: default; }
+.tarefas-vazio { margin: 0 2px; color: var(--texto-suave); }
+.feitas { margin-top: 18px; }
+.feitas summary { cursor: pointer; padding: 10px 2px; color: var(--texto-suave); font-weight: 600; }
+.btn-colar { margin-top: 18px; }
+#colar-tarefas-texto {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  font-size: 16px;
+  margin-bottom: 12px;
+}
