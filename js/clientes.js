@@ -6,7 +6,7 @@ import {
 } from './comum.js';
 import { situacaoCliente, dividirParcelas, somarMeses, linkWhatsApp } from './fiado.js';
 import {
-  TEXTO_PADRAO, mensagemCobranca, linkCobranca, linkGoogleAgenda, dataAtalho,
+  TEXTO_PADRAO, textoCobranca, valorCobrar, mensagemCobranca, linkCobranca, linkGoogleAgenda, dataAtalho,
 } from './lembrete.js';
 
 const DIAS_ATRASO = 30;
@@ -86,8 +86,6 @@ function textoDesde(s) {
 }
 
 // Valor a cobrar: o que já venceu; se nada venceu, o total.
-const valorCobrar = (s) => s.vencido || s.saldo;
-
 function textoLembrete(c) {
   if (!c.lembrete) return '';
   const { data, hora } = c.lembrete;
@@ -266,7 +264,6 @@ $('#cliente-conteudo').addEventListener('click', async (e) => {
 
 // ---------- Lembrete de cobrança ----------
 
-const textoCobranca = () => lerPreferencia('textoCobranca') || TEXTO_PADRAO;
 let lembreteAtual = null;
 
 async function salvarLembrete(cliente, lembrete) {
@@ -675,6 +672,8 @@ $('#btn-novo-cliente').addEventListener('click', () => abrirFormCliente());
 
 // Recalcula ao abrir a tela (muda "dias de atraso" quando vira o dia).
 document.addEventListener('tela-aberta', (e) => { if (e.detail === 'clientes') carregar(); });
+// Outras telas (ex.: Tarefas) abrem a ficha de um cliente.
+document.addEventListener('abrir-cliente', async (e) => { await carregar(); abrirCliente(e.detail); });
 document.addEventListener('dados-mudaram', () => carregar());
 
 carregar();

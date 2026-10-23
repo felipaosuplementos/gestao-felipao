@@ -2,11 +2,17 @@
 // (o app do Google Agenda avisa na hora marcada, mesmo com o sistema fechado).
 
 import { linkWhatsApp } from './fiado.js';
+import { lerPreferencia } from './comum.js';
 
 export const TEXTO_PADRAO = 'Oi {nome}, tudo bem? Passando para lembrar do valor de {valor} aqui da Felipão Suplementos. Pode ser no Pix? Obrigado! 💪';
 
 const reais = (centavos) => (centavos / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const primeiroNome = (nome) => String(nome || '').trim().split(/\s+/)[0] || '';
+
+// Texto escolhido no menu (ou o padrão).
+export const textoCobranca = () => lerPreferencia('textoCobranca') || TEXTO_PADRAO;
+// Cobra o que já venceu; se nada venceu ainda, o saldo todo.
+export const valorCobrar = (s) => s.vencido || s.saldo;
 
 export function mensagemCobranca(texto, cliente, valorCentavos) {
   return (texto || TEXTO_PADRAO)
@@ -38,12 +44,13 @@ function somarMinutos(data, hora, minutos) {
 }
 
 // Abre o Google Agenda com o evento preenchido; é só tocar em Salvar.
-export function linkGoogleAgenda({ titulo, descricao, link, data, hora }) {
+// O link (WhatsApp com a mensagem pronta) é opcional.
+export function linkGoogleAgenda({ titulo, descricao = '', link, data, hora }) {
   const p = new URLSearchParams({
     action: 'TEMPLATE',
     text: titulo,
     dates: `${horaLocal(data, hora)}/${somarMinutos(data, hora, 15)}`,
-    details: `${descricao}\n\nAbrir WhatsApp com a mensagem pronta:\n${link}`,
+    details: link ? `${descricao}\n\nAbrir WhatsApp com a mensagem pronta:\n${link}` : descricao,
   });
   return `https://calendar.google.com/calendar/render?${p}`;
 }
