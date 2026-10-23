@@ -99,7 +99,7 @@ function linhaSituacao(s, c = null) {
   if (c?.lembrete) partes.push(textoLembrete(c));
   if (s.saldo === 0) partes.push(s.credito ? `crédito de ${moedaCentavos(s.credito)}` : 'nada a pagar');
   if (s.desde) partes.push(textoDesde(s));
-  if (s.proximoVencimento) partes.push(`próxima parcela ${dataCurta(s.proximoVencimento.data)}: ${moedaCentavos(s.proximoVencimento.valor)}`);
+  if (s.proximoVencimento) partes.push(`a vencer ${dataCurta(s.proximoVencimento.data)}: ${moedaCentavos(s.proximoVencimento.valor)}`);
   return partes.join(' · ');
 }
 
@@ -197,14 +197,14 @@ function abrirCliente(id) {
       <button class="btn" data-acao="editar">✏️ Editar</button>
       <button class="btn" data-acao="${c.arquivado ? 'restaurar' : 'arquivar'}">${c.arquivado ? '♻️ Restaurar' : '🗂️ Arquivar'}</button>
     </div>
-    ${aVencer.length ? `<h3>Parcelas a vencer</h3><ul class="historico">${aVencer.map((d) => `
+    ${aVencer.length ? `<h3>A vencer</h3><ul class="historico">${aVencer.map((d) => `
       <li><div>${dataCurta(d.vencimento || d.data)}${d.parcela ? ` · parcela ${esc(d.parcela)}` : ''}<small>${esc(d.descricao || '')}</small></div>
       <span class="dif">${moedaCentavos(d.restante)}</span></li>`).join('')}</ul>` : ''}
     <h3>Histórico</h3>
     ${historico.length ? `<ul class="historico">${historico.map((l) => `
       <li class="${l.cancelado ? 'cancelado' : ''}">
         <div>${esc(descricaoLancamento(l))}
-          <small>${dataCurta(l.data)}${l.dataAproximada ? ' (data aproximada)' : ''}${l.parcela ? ` · parcela ${esc(l.parcela)} · vence ${dataCurta(l.vencimento)}` : ''} · registrado em ${dataHora(l.registradoEm)}</small>
+          <small>${dataCurta(l.data)}${l.dataAproximada ? ' (data aproximada)' : ''}${l.parcela ? ` · parcela ${esc(l.parcela)} · vence ${dataCurta(l.vencimento)}` : l.vencimento ? ` · vence ${dataCurta(l.vencimento)}` : ''} · registrado em ${dataHora(l.registradoEm)}</small>
           ${l.cancelado ? `<small class="erros">Cancelado em ${dataHora(l.cancelado.em)}${l.cancelado.motivo ? ` — ${esc(l.cancelado.motivo)}` : ''}</small>`
             : l.vendaId ? '<small>Veio de uma venda: para desfazer, cancele a venda na tela Vender.</small>'
               : `<button class="btn-texto btn-cancelar" data-cancelar="${l.id}">cancelar lançamento</button>`}
@@ -395,9 +395,11 @@ function abrirLancamento(item, tipo) {
   $('#lanc-descricao-rotulo').firstChild.textContent = fiado ? 'O que levou' : 'Observação';
   form.descricao.placeholder = fiado ? 'Ex.: Whey Fort 3W chocolate' : 'Opcional';
   form.data.value = hojeISO();
-  form.vencimento.value = somarMeses(hojeISO(), 1);
+  form.data.max = hojeISO();
+  form.vencimento.value = '';
+  form.vencimento.min = hojeISO();
+  $('#lanc-data-rotulo').firstChild.textContent = fiado ? 'Dia da compra' : 'Data';
   $('#lanc-parcelamento').hidden = !fiado;
-  $('#lanc-venc-rotulo').hidden = true;
   $('#lanc-formas').hidden = fiado;
   $('#lanc-formas').innerHTML = FORMAS.map((f, i) => `<button type="button" class="chip" data-forma="${f}" aria-pressed="${i === 0}">${f}</button>`).join('');
   const atalhos = [];
@@ -431,12 +433,19 @@ function atualizarLancamento() {
   const valor = valorDigitado();
   const saldo = item.situacao.saldo;
   if (tipo === 'fiado') {
-    $('#lanc-venc-rotulo').hidden = Number(form.parcelas.value) <= 1;
+    const parcelado = Number(form.parcelas.value) > 1;
+    // Parcelado sempre tem vencimento: começa daqui a um mês.
+    if (parcelado && !form.vencimento.value) form.vencimento.value = somarMeses(hojeISO(), 1);
+    $('#lanc-venc-texto').textContent = parcelado ? '1º vencimento' : 'Vence em (opcional)';
+    $('#lanc-venc-dica').hidden = parcelado;
     const parcelas = parcelasDoForm();
     $('#lanc-parcelas').innerHTML = parcelas
       ? parcelas.map((p) => `<li>Parcela ${p.parcela}: <strong>${moedaCentavos(p.valor)}</strong> — vence ${dataCurta(p.vencimento)}</li>`).join('')
       : '';
-    $('#lanc-resultado').textContent = valor ? `Vai ficar devendo ${moedaCentavos(saldo + valor)}` : '';
+    const venceDepois = !parcelado && form.vencimento.value > hojeISO();
+    $('#lanc-resultado').textContent = valor
+      ? `Vai ficar devendo ${moedaCentavos(saldo + valor)}${venceDepois ? ` (${moedaCentavos(valor)} vence em ${dataCurta(form.vencimento.value)})` : ''}`
+      : '';
   } else {
     const fica = saldo - valor;
     $('#lanc-resultado').textContent = !valor ? ''
@@ -465,7 +474,10 @@ $('#form-lanc').addEventListener('submit', async (e) => {
   const valor = valorDigitado();
   if (!valor) { avisar('Digite o valor'); return; }
   const data = form.data.value || hojeISO();
-  if (data > hojeISO()) { avisar('A data não pode ser no futuro'); return; }
+  if (data > hojeISO()) {
+    avisar(tipo === 'fiado' ? 'O dia da compra não pode ser no futuro. Para cobrar depois, use "Vence em".' : 'A data não pode ser no futuro');
+    return;
+  }
   const base = { clienteId: item.cliente.id, tipo, data, descricao: form.descricao.value.trim() };
   let lancamentos;
   if (tipo === 'pagamento') {
@@ -473,9 +485,10 @@ $('#form-lanc').addEventListener('submit', async (e) => {
   } else {
     const parcelas = parcelasDoForm();
     const grupo = parcelas ? db.novoId() : undefined;
+    const vencimento = form.vencimento.value > data ? form.vencimento.value : undefined;
     lancamentos = parcelas
       ? parcelas.map((p) => ({ ...base, valor: p.valor, vencimento: p.vencimento, parcela: p.parcela, grupo }))
-      : [{ ...base, valor }];
+      : [{ ...base, valor, ...(vencimento ? { vencimento } : {}) }];
   }
   await db.gravarFiado({ lancamentos });
   // Quitou tudo: o lembrete de cobrança não é mais necessário.
