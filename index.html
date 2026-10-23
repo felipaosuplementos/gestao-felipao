@@ -226,6 +226,7 @@
       <p class="menu-titulo">Clientes e fiado</p>
       <button class="btn" id="menu-exportar-fiado">⬇️ Backup: baixar planilha do fiado</button>
       <button class="btn" id="menu-exportar-clientes">⬇️ Baixar lista: quem deve e quem já pagou</button>
+      <button class="btn" id="menu-texto-cobranca">✏️ Texto da mensagem de cobrança</button>
       <button class="btn" id="menu-importar-devedores">⬆️ Importar planilha de devedores</button>
       <button class="btn" id="menu-clientes-arquivados">🗂️ Ver clientes arquivados</button>
       <button class="btn btn-perigo-claro" id="menu-fiado-zero">🧹 Apagar o fiado e começar do zero</button>
@@ -301,6 +302,51 @@
       <div class="folha-acoes">
         <button type="button" class="btn" data-fechar>Cancelar</button>
         <button type="submit" id="lanc-confirmar" class="btn btn-primario">Confirmar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Lembrete de cobrança -->
+  <dialog id="dlg-lembrete" class="folha folha-baixa">
+    <form id="form-lembrete" method="dialog" novalidate>
+      <div class="folha-topo">
+        <h2>⏰ Lembrar de cobrar</h2>
+        <button type="button" class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+      </div>
+      <p id="lembrete-cliente" class="mov-produto"></p>
+      <div class="chips chips-motivo">
+        <button type="button" class="chip" data-atalho="+1">Amanhã</button>
+        <button type="button" class="chip" data-atalho="+3">Em 3 dias</button>
+        <button type="button" class="chip" data-atalho="+7">Em 7 dias</button>
+        <button type="button" class="chip" data-atalho="dia5">Dia 5</button>
+        <button type="button" class="chip" data-atalho="dia10">Dia 10</button>
+        <button type="button" class="chip" data-atalho="dia15">Dia 15</button>
+      </div>
+      <div class="duas">
+        <label>Dia<input name="data" type="date" required></label>
+        <label>Hora<input name="hora" type="time" value="09:00"></label>
+      </div>
+      <p class="descricao">O lembrete vai para o calendário do seu aparelho, que avisa no dia e hora marcados, mesmo com o sistema fechado. Dentro dele tem o link para abrir o WhatsApp com a mensagem de cobrança pronta.</p>
+      <p id="lembrete-whats" class="descricao"></p>
+      <button type="submit" id="lembrete-calendario" class="btn btn-primario btn-largo">📅 Adicionar ao calendário</button>
+      <button type="submit" id="lembrete-google" class="btn btn-largo">Usar o Google Agenda</button>
+      <button type="button" id="lembrete-remover" class="btn-texto btn-largo" hidden>Remover lembrete</button>
+    </form>
+  </dialog>
+
+  <!-- Texto da mensagem de cobrança -->
+  <dialog id="dlg-texto-cobranca" class="folha folha-baixa">
+    <form id="form-texto-cobranca" method="dialog">
+      <div class="folha-topo">
+        <h2>Texto da cobrança</h2>
+        <button type="button" class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+      </div>
+      <p class="descricao">Use <strong>{nome}</strong> para o primeiro nome do cliente e <strong>{valor}</strong> para o valor a cobrar.</p>
+      <textarea id="texto-cobranca" rows="5"></textarea>
+      <button type="button" id="texto-cobranca-padrao" class="btn-texto">Voltar ao texto padrão</button>
+      <div class="folha-acoes">
+        <button type="button" class="btn" data-fechar>Cancelar</button>
+        <button type="submit" class="btn btn-primario">Salvar</button>
       </div>
     </form>
   </dialog>

@@ -5,6 +5,9 @@ import {
   avisar, confirmar, confirmarComMotivo, lerPreferencia, gravarPreferencia,
 } from './comum.js';
 import { situacaoCliente, dividirParcelas, somarMeses, linkWhatsApp } from './fiado.js';
+import {
+  TEXTO_PADRAO, mensagemCobranca, linkCobranca, gerarIcs, linkGoogleAgenda, abrirNoCalendario, dataAtalho,
+} from './lembrete.js';
 
 const DIAS_ATRASO = 30;
 const DIAS_AVISO_BACKUP = 7;
@@ -38,6 +41,7 @@ async function carregar() {
 const FILTROS = [
   { id: 'devendo', nome: 'Devendo', teste: (i) => i.situacao.saldo > 0 },
   { id: 'atrasados', nome: `Mais de ${DIAS_ATRASO} dias`, teste: (i) => i.situacao.vencido > 0 && i.situacao.diasAtraso > DIAS_ATRASO },
+  { id: 'lembretes', nome: '⏰ Cobrar', teste: (i) => !!i.cliente.lembrete },
   { id: 'quitados', nome: 'Quitados', teste: (i) => i.situacao.saldo === 0 },
   { id: 'todos', nome: 'Todos', teste: () => true },
 ];
@@ -47,7 +51,11 @@ const ordemDevendo = (a, b) => (a.situacao.chaveDesde || '9999').localeCompare(b
   || a.situacao.ordemDesde - b.situacao.ordemDesde || b.situacao.saldo - a.situacao.saldo;
 const ordemNome = (a, b) => a.cliente.nome.localeCompare(b.cliente.nome, 'pt-BR');
 
+const quandoLembrete = (c) => `${c.lembrete.data}T${c.lembrete.hora}`;
+const ordemLembrete = (a, b) => quandoLembrete(a.cliente).localeCompare(quandoLembrete(b.cliente));
+
 function ordenar(lista) {
+  if (estado.filtro === 'lembretes') return lista.sort(ordemLembrete);
   return lista.sort(estado.filtro === 'devendo' || estado.filtro === 'atrasados' ? ordemDevendo : ordemNome);
 }
 
@@ -77,8 +85,20 @@ function textoDesde(s) {
   return `deve desde ${dataCurta(s.desde)} · ${dias === 0 ? 'hoje' : dias === 1 ? '1 dia' : `${dias} dias`}`;
 }
 
-function linhaSituacao(s) {
+// Valor a cobrar: o que já venceu; se nada venceu, o total.
+const valorCobrar = (s) => s.vencido || s.saldo;
+
+function textoLembrete(c) {
+  if (!c.lembrete) return '';
+  const { data, hora } = c.lembrete;
+  const hoje = hojeISO();
+  const quando = data < hoje ? `atrasado (${dataCurta(data)})` : data === hoje ? `hoje às ${hora}` : `${dataCurta(data)} às ${hora}`;
+  return `⏰ cobrar ${quando}`;
+}
+
+function linhaSituacao(s, c = null) {
   const partes = [];
+  if (c?.lembrete) partes.push(textoLembrete(c));
   if (s.saldo === 0) partes.push(s.credito ? `crédito de ${moedaCentavos(s.credito)}` : 'nada a pagar');
   if (s.desde) partes.push(textoDesde(s));
   if (s.proximoVencimento) partes.push(`próxima parcela ${dataCurta(s.proximoVencimento.data)}: ${moedaCentavos(s.proximoVencimento.valor)}`);
@@ -110,7 +130,7 @@ function render() {
       <div class="miniatura avatar">${iniciaisCliente(c.nome)}</div>
       <div class="item-info">
         <div class="item-nome">${esc(c.nome)}</div>
-        <div class="item-sub item-sub-quebra">${esc(linhaSituacao(s))}</div>
+        <div class="item-sub item-sub-quebra">${esc(linhaSituacao(s, c))}</div>
       </div>
       <div class="saldo ${classeSaldo(s)}">${s.saldo ? moedaCentavos(s.saldo) : '✓'}</div>
     </button></li>`).join('');
@@ -146,6 +166,7 @@ function abrirCliente(id) {
   clienteAberto = id;
   const { cliente: c, situacao: s, lancamentos } = item;
   const zap = linkWhatsApp(c.whatsapp);
+  const cobrar = s.saldo > 0 ? linkCobranca(c, mensagemCobranca(textoCobranca(), c, valorCobrar(s))) : null;
   const hoje = hojeISO();
   const aVencer = s.abertos.filter((d) => (d.vencimento || d.data) > hoje);
   const historico = [...lancamentos].sort((a, b) => b.data.localeCompare(a.data) || b.registradoEm.localeCompare(a.registradoEm));
@@ -164,13 +185,17 @@ function abrirCliente(id) {
       <div class="numero">${s.saldo ? moedaCentavos(s.saldo) : 'Em dia ✓'}</div>
       <div class="rotulo">${esc(linhaSituacao(s)) || '&nbsp;'}</div>
       ${s.vencido && s.aVencer ? `<div class="rotulo">Para cobrar: ${moedaCentavos(s.vencido)} · A vencer: ${moedaCentavos(s.aVencer)}</div>` : ''}
+      ${c.lembrete ? `<div class="lembrete-caixa">${esc(textoLembrete(c))}
+        <button class="btn-texto" data-acao="lembrete-feito">✓ já cobrei</button></div>` : ''}
       <div class="estoque-botoes">
         <button class="btn btn-primario" data-lanc="fiado">＋ Fiado</button>
         <button class="btn" data-lanc="pagamento" ${s.saldo ? '' : 'disabled'}>💵 Recebi pagamento</button>
       </div>
     </div>
     <div class="acoes-produto">
-      ${zap ? `<a class="btn" href="${zap}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}
+      ${cobrar ? `<a class="btn" href="${cobrar}" target="_blank" rel="noopener">💬 Cobrar no WhatsApp</a>`
+    : zap ? `<a class="btn" href="${zap}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}
+      ${s.saldo > 0 ? `<button class="btn" data-acao="lembrete">⏰ ${c.lembrete ? 'Mudar lembrete' : 'Lembrar de cobrar'}</button>` : ''}
       <button class="btn" data-acao="editar">✏️ Editar</button>
       <button class="btn" data-acao="${c.arquivado ? 'restaurar' : 'arquivar'}">${c.arquivado ? '♻️ Restaurar' : '🗂️ Arquivar'}</button>
     </div>
@@ -217,6 +242,11 @@ $('#cliente-conteudo').addEventListener('click', async (e) => {
 
   const acao = e.target.closest('[data-acao]')?.dataset.acao;
   if (acao === 'editar') abrirFormCliente(item.cliente);
+  if (acao === 'lembrete') abrirLembrete(item);
+  if (acao === 'lembrete-feito') {
+    await salvarLembrete(item.cliente, null);
+    avisar('Lembrete concluído');
+  }
   if (acao === 'arquivar') {
     if (item.situacao.saldo > 0) { avisar('Só dá para arquivar quem não deve nada.'); return; }
     const ok = await confirmar('Arquivar cliente?', `${item.cliente.nome} sai da lista, mas nada é apagado. Dá para restaurar em Menu → Ver clientes arquivados.`, 'Arquivar');
@@ -233,6 +263,86 @@ $('#cliente-conteudo').addEventListener('click', async (e) => {
     await carregar();
   }
 });
+
+// ---------- Lembrete de cobrança ----------
+
+const textoCobranca = () => lerPreferencia('textoCobranca') || TEXTO_PADRAO;
+let lembreteAtual = null;
+
+async function salvarLembrete(cliente, lembrete) {
+  const { lembrete: _antigo, ...resto } = cliente;
+  await db.salvarCliente(lembrete ? { ...resto, lembrete } : resto);
+  await carregar();
+  if ($('#dlg-cliente').open) abrirCliente(cliente.id);
+}
+
+function abrirLembrete(item) {
+  lembreteAtual = item;
+  const { cliente: c, situacao: s } = item;
+  const form = $('#form-lembrete');
+  form.reset();
+  form.data.value = c.lembrete?.data || dataAtalho('+1');
+  form.hora.value = c.lembrete?.hora || '09:00';
+  form.data.min = hojeISO();
+  $('#lembrete-cliente').textContent = `${c.nome} — cobrar ${moedaCentavos(valorCobrar(s))}`;
+  $('#lembrete-remover').hidden = !c.lembrete;
+  $('#lembrete-whats').textContent = c.whatsapp ? '' : 'Sem WhatsApp cadastrado: no lembrete, o link abre o WhatsApp para você escolher o contato.';
+  $('#dlg-lembrete').showModal();
+}
+
+function dadosEvento(item, data, hora) {
+  const { cliente: c, situacao: s } = item;
+  const mensagem = mensagemCobranca(textoCobranca(), c, valorCobrar(s));
+  return {
+    id: c.id, data, hora,
+    titulo: `💰 Cobrar ${c.nome}: ${moedaCentavos(valorCobrar(s))}`,
+    descricao: `Mensagem: ${mensagem}`,
+    link: linkCobranca(c, mensagem),
+  };
+}
+
+$('#dlg-lembrete').addEventListener('click', (e) => {
+  const atalho = e.target.closest('[data-atalho]');
+  if (atalho) $('#form-lembrete').data.value = dataAtalho(atalho.dataset.atalho);
+});
+
+$('#form-lembrete').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const item = lembreteAtual;
+  const data = form.data.value;
+  const hora = form.hora.value || '09:00';
+  if (!data) { avisar('Escolha o dia'); return; }
+  const usarGoogle = e.submitter?.id === 'lembrete-google';
+  const evento = dadosEvento(item, data, hora);
+  // Abre o calendário antes de gravar (o navegador só deixa abrir janela logo após o toque).
+  if (usarGoogle) window.open(linkGoogleAgenda(evento), '_blank');
+  else abrirNoCalendario(gerarIcs(evento), `cobrar-${item.cliente.nome.replace(/\W+/g, '-').toLowerCase()}.ics`);
+  $('#dlg-lembrete').close();
+  await salvarLembrete(item.cliente, { data, hora, criadoEm: new Date().toISOString() });
+  avisar(`Lembrete marcado: ${dataCurta(data)} às ${hora}`);
+});
+
+$('#lembrete-remover').addEventListener('click', async () => {
+  $('#dlg-lembrete').close();
+  await salvarLembrete(lembreteAtual.cliente, null);
+  avisar('Lembrete removido (se estiver no calendário, apague lá também)');
+});
+
+// Texto da mensagem de cobrança (menu).
+$('#menu-texto-cobranca').addEventListener('click', () => {
+  $('#dlg-menu').close();
+  $('#texto-cobranca').value = textoCobranca();
+  $('#dlg-texto-cobranca').showModal();
+});
+$('#form-texto-cobranca').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const texto = $('#texto-cobranca').value.trim();
+  gravarPreferencia('textoCobranca', texto && texto !== TEXTO_PADRAO ? texto : '');
+  $('#dlg-texto-cobranca').close();
+  avisar('Texto da cobrança salvo');
+});
+$('#texto-cobranca-padrao').addEventListener('click', () => { $('#texto-cobranca').value = TEXTO_PADRAO; });
 
 // ---------- Cadastro de cliente ----------
 
@@ -374,6 +484,11 @@ $('#form-lanc').addEventListener('submit', async (e) => {
       : [{ ...base, valor }];
   }
   await db.gravarFiado({ lancamentos });
+  // Quitou tudo: o lembrete de cobrança não é mais necessário.
+  if (tipo === 'pagamento' && item.cliente.lembrete && valor >= item.situacao.saldo) {
+    const { lembrete: _l, ...semLembrete } = item.cliente;
+    await db.salvarCliente(semLembrete);
+  }
   $('#dlg-lanc').close();
   avisar(tipo === 'fiado' ? `Fiado de ${moedaCentavos(valor)} registrado` : `Pagamento de ${moedaCentavos(valor)} registrado`);
   await carregar();
