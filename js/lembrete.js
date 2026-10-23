@@ -1,5 +1,5 @@
-// Lembrete de cobrança: mensagem pronta para o WhatsApp e evento no calendário do aparelho
-// (o calendário avisa na hora marcada, mesmo com o sistema fechado).
+// Lembrete de cobrança: mensagem pronta para o WhatsApp e evento no Google Agenda
+// (o app do Google Agenda avisa na hora marcada, mesmo com o sistema fechado).
 
 import { linkWhatsApp } from './fiado.js';
 
@@ -21,7 +21,7 @@ export function linkCobranca(cliente, mensagem) {
   return `${base}?text=${encodeURIComponent(mensagem)}`;
 }
 
-// ---------- Calendário (.ics) ----------
+// ---------- Google Agenda ----------
 
 const doisDigitos = (n) => String(n).padStart(2, '0');
 
@@ -37,39 +37,7 @@ function somarMinutos(data, hora, minutos) {
   return `${t.getFullYear()}${doisDigitos(t.getMonth() + 1)}${doisDigitos(t.getDate())}T${doisDigitos(t.getHours())}${doisDigitos(t.getMinutes())}00`;
 }
 
-const escaparIcs = (s) => String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
-
-// Linhas do .ics têm no máximo 75 bytes; as maiores continuam na linha de baixo começando com espaço.
-function dobrar(linha) {
-  const bytes = new TextEncoder();
-  const partes = [];
-  let atual = '';
-  for (const ch of linha) {
-    if (bytes.encode(atual + ch).length > (partes.length ? 74 : 75)) { partes.push(atual); atual = ''; }
-    atual += ch;
-  }
-  partes.push(atual);
-  return partes.join('\r\n ');
-}
-
-export function gerarIcs({ id, titulo, descricao, link, data, hora }) {
-  const agoraUtc = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
-  return [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Gestao Felipao//Cobranca//PT', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
-    'BEGIN:VEVENT',
-    `UID:cobranca-${id}-${data}@gestao-felipao`,
-    `DTSTAMP:${agoraUtc}`,
-    `DTSTART:${horaLocal(data, hora)}`,
-    `DTEND:${somarMinutos(data, hora, 15)}`,
-    `SUMMARY:${escaparIcs(titulo)}`,
-    `DESCRIPTION:${escaparIcs(`${descricao}\n\nAbrir WhatsApp com a mensagem pronta:\n${link}`)}`,
-    `URL:${link}`,
-    'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${escaparIcs(titulo)}`, 'TRIGGER:PT0M', 'END:VALARM',
-    'END:VEVENT', 'END:VCALENDAR',
-  ].map(dobrar).join('\r\n') + '\r\n';
-}
-
-// Link para o Google Agenda (alternativa ao arquivo do calendário).
+// Abre o Google Agenda com o evento preenchido; é só tocar em Salvar.
 export function linkGoogleAgenda({ titulo, descricao, link, data, hora }) {
   const p = new URLSearchParams({
     action: 'TEMPLATE',
@@ -78,47 +46,6 @@ export function linkGoogleAgenda({ titulo, descricao, link, data, hora }) {
     details: `${descricao}\n\nAbrir WhatsApp com a mensagem pronta:\n${link}`,
   });
   return `https://calendar.google.com/calendar/render?${p}`;
-}
-
-export const ehIphone = () => /iPhone|iPad|iPod/.test(navigator.userAgent)
-  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-// Texto → base64 que cabe no endereço (aceita acentos e emoji).
-function base64Url(texto) {
-  let bin = '';
-  for (const b of new TextEncoder().encode(texto)) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-function baixar(ics, nomeArquivo) {
-  const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = nomeArquivo;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
-}
-
-// Entrega o .ics ao aparelho. No iPhone abre um endereço de verdade (montado pelo sw.js),
-// que o iPhone mostra com o botão "Adicionar ao Calendário".
-export function abrirNoCalendario(ics, nomeArquivo) {
-  if (ehIphone() && navigator.serviceWorker?.controller) {
-    window.open(`evento.ics?d=${base64Url(ics)}`, '_blank');
-    return;
-  }
-  baixar(ics, nomeArquivo);
-}
-
-// Plano B: manda o arquivo pelo "Compartilhar" do aparelho (Salvar em Arquivos e abrir de lá).
-export async function compartilharIcs(ics, nomeArquivo) {
-  const arquivo = new File([ics], nomeArquivo, { type: 'text/calendar' });
-  if (navigator.canShare?.({ files: [arquivo] })) {
-    try { await navigator.share({ files: [arquivo], title: 'Lembrete de cobrança' }); } catch { /* cancelou */ }
-    return;
-  }
-  baixar(ics, nomeArquivo);
 }
 
 // Próxima data para os atalhos (amanhã, em N dias, próximo dia X do mês).
