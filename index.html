@@ -320,15 +320,16 @@
       <div id="lanc-atalhos" class="chips chips-motivo"></div>
       <div id="lanc-formas" class="chips chips-motivo"></div>
       <label id="lanc-descricao-rotulo">O que levou<input name="descricao" placeholder="Ex.: Whey Fort 3W chocolate" autocomplete="off"></label>
-      <label>Data<input name="data" type="date"></label>
+      <label id="lanc-data-rotulo">Data<input name="data" type="date"></label>
       <div id="lanc-parcelamento">
         <div class="duas">
           <label>Parcelas<select name="parcelas">
             <option value="1">À vista (sem parcelas)</option>
             <option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
           </select></label>
-          <label id="lanc-venc-rotulo" hidden>1º vencimento<input name="vencimento" type="date"></label>
+          <label id="lanc-venc-rotulo"><span id="lanc-venc-texto">Vence em</span><input name="vencimento" type="date"></label>
         </div>
+        <p id="lanc-venc-dica" class="descricao">Deixe "Vence em" vazio se já pode cobrar. Preencha se o cliente só vai pagar depois.</p>
         <ul id="lanc-parcelas" class="previa"></ul>
       </div>
       <p id="lanc-resultado" class="mov-resultado"></p>
