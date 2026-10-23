@@ -1,5 +1,5 @@
 import * as db from './db.js';
-import { lerCsv, lerNumero, linhasParaDevedores, csvClientes, csvLancamentos, baixarArquivo } from './planilha.js';
+import { lerCsv, lerNumero, linhasParaDevedores, csvClientes, csvFiadoSeparado, baixarArquivo } from './planilha.js';
 import {
   $, moedaCentavos, paraCentavos, esc, semAcento, dataHora, hojeISO, dataCurta,
   avisar, confirmar, confirmarComMotivo, lerPreferencia, gravarPreferencia,
@@ -42,13 +42,20 @@ const FILTROS = [
   { id: 'todos', nome: 'Todos', teste: () => true },
 ];
 
+// Quem deve há mais tempo primeiro; na mesma data, a ordem da planilha; depois quem deve mais.
+const ordemDevendo = (a, b) => (a.situacao.chaveDesde || '9999').localeCompare(b.situacao.chaveDesde || '9999')
+  || a.situacao.ordemDesde - b.situacao.ordemDesde || b.situacao.saldo - a.situacao.saldo;
+const ordemNome = (a, b) => a.cliente.nome.localeCompare(b.cliente.nome, 'pt-BR');
+
 function ordenar(lista) {
-  if (estado.filtro !== 'devendo' && estado.filtro !== 'atrasados') {
-    return lista.sort((a, b) => a.cliente.nome.localeCompare(b.cliente.nome, 'pt-BR'));
-  }
-  // Quem deve há mais tempo primeiro; na mesma data, a ordem da planilha; depois quem deve mais.
-  return lista.sort((a, b) => (a.situacao.chaveDesde || '9999').localeCompare(b.situacao.chaveDesde || '9999')
-    || a.situacao.ordemDesde - b.situacao.ordemDesde || b.situacao.saldo - a.situacao.saldo);
+  return lista.sort(estado.filtro === 'devendo' || estado.filtro === 'atrasados' ? ordemDevendo : ordemNome);
+}
+
+// Para as planilhas: quem deve (na ordem da tela) e quem já pagou (por nome).
+function separarDevendoQuitados() {
+  const devendo = estado.itens.filter((i) => i.situacao.saldo > 0).sort(ordemDevendo);
+  const quitados = estado.itens.filter((i) => i.situacao.saldo === 0).sort(ordemNome);
+  return { devendo, quitados };
 }
 
 function visiveis() {
@@ -492,10 +499,9 @@ $('#input-devedores').addEventListener('change', async (e) => {
 const hojeArquivo = () => new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
 
 async function exportarFiado() {
-  const nomes = new Map(estado.itens.map((i) => [i.cliente.id, i.cliente.nome]));
-  const lancamentos = (await db.listarLancamentos()).sort((a, b) => a.data.localeCompare(b.data)
-    || a.registradoEm.localeCompare(b.registradoEm) || (nomes.get(a.clienteId) || '').localeCompare(nomes.get(b.clienteId) || '', 'pt-BR'));
-  baixarArquivo(`felipao-fiado-${hojeArquivo()}.csv`, csvLancamentos(lancamentos, nomes));
+  await carregar();
+  const { devendo, quitados } = separarDevendoQuitados();
+  baixarArquivo(`felipao-fiado-${hojeArquivo()}.csv`, csvFiadoSeparado(devendo, quitados));
   gravarPreferencia('ultimoBackupFiado', new Date().toISOString());
   $('#dlg-menu').close();
   render();
@@ -504,8 +510,8 @@ async function exportarFiado() {
 
 $('#menu-exportar-fiado').addEventListener('click', exportarFiado);
 $('#menu-exportar-clientes').addEventListener('click', () => {
-  const linhas = [...estado.itens].sort((a, b) => b.situacao.saldo - a.situacao.saldo);
-  baixarArquivo(`felipao-quem-deve-${hojeArquivo()}.csv`, csvClientes(linhas));
+  const { devendo, quitados } = separarDevendoQuitados();
+  baixarArquivo(`felipao-quem-deve-${hojeArquivo()}.csv`, csvClientes(devendo, quitados));
   $('#dlg-menu').close();
   avisar('Lista de quem deve baixada');
 });
