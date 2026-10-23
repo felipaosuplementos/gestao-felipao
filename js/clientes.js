@@ -6,7 +6,7 @@ import {
 } from './comum.js';
 import { situacaoCliente, dividirParcelas, somarMeses, linkWhatsApp } from './fiado.js';
 import {
-  TEXTO_PADRAO, mensagemCobranca, linkCobranca, gerarIcs, linkGoogleAgenda, abrirNoCalendario, dataAtalho,
+  TEXTO_PADRAO, mensagemCobranca, linkCobranca, gerarIcs, linkGoogleAgenda, abrirNoCalendario, compartilharIcs, ehIphone, dataAtalho,
 } from './lembrete.js';
 
 const DIAS_ATRASO = 30;
@@ -286,6 +286,7 @@ function abrirLembrete(item) {
   form.data.min = hojeISO();
   $('#lembrete-cliente').textContent = `${c.nome} — cobrar ${moedaCentavos(valorCobrar(s))}`;
   $('#lembrete-remover').hidden = !c.lembrete;
+  $('#lembrete-arquivo').hidden = !ehIphone();
   $('#lembrete-whats').textContent = c.whatsapp ? '' : 'Sem WhatsApp cadastrado: no lembrete, o link abre o WhatsApp para você escolher o contato.';
   $('#dlg-lembrete').showModal();
 }
@@ -313,11 +314,13 @@ $('#form-lembrete').addEventListener('submit', async (e) => {
   const data = form.data.value;
   const hora = form.hora.value || '09:00';
   if (!data) { avisar('Escolha o dia'); return; }
-  const usarGoogle = e.submitter?.id === 'lembrete-google';
+  const botao = e.submitter?.id;
   const evento = dadosEvento(item, data, hora);
+  const arquivo = `cobrar-${semAcento(item.cliente.nome).replace(/\W+/g, '-').toLowerCase()}.ics`;
   // Abre o calendário antes de gravar (o navegador só deixa abrir janela logo após o toque).
-  if (usarGoogle) window.open(linkGoogleAgenda(evento), '_blank');
-  else abrirNoCalendario(gerarIcs(evento), `cobrar-${item.cliente.nome.replace(/\W+/g, '-').toLowerCase()}.ics`);
+  if (botao === 'lembrete-google') window.open(linkGoogleAgenda(evento), '_blank');
+  else if (botao === 'lembrete-arquivo') compartilharIcs(gerarIcs(evento), arquivo);
+  else abrirNoCalendario(gerarIcs(evento), arquivo);
   $('#dlg-lembrete').close();
   await salvarLembrete(item.cliente, { data, hora, criadoEm: new Date().toISOString() });
   avisar(`Lembrete marcado: ${dataCurta(data)} às ${hora}`);

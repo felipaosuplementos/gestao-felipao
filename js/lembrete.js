@@ -80,15 +80,17 @@ export function linkGoogleAgenda({ titulo, descricao, link, data, hora }) {
   return `https://calendar.google.com/calendar/render?${p}`;
 }
 
-// Entrega o .ics ao aparelho. No iPhone/iPad abre direto a tela "Adicionar ao Calendário".
-export function abrirNoCalendario(ics, nomeArquivo) {
-  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent)
-    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  if (ios) {
-    const url = `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
-    if (!window.open(url, '_blank')) location.href = url;
-    return;
-  }
+export const ehIphone = () => /iPhone|iPad|iPod/.test(navigator.userAgent)
+  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+// Texto → base64 que cabe no endereço (aceita acentos e emoji).
+function base64Url(texto) {
+  let bin = '';
+  for (const b of new TextEncoder().encode(texto)) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function baixar(ics, nomeArquivo) {
   const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
   const a = document.createElement('a');
   a.href = url;
@@ -97,6 +99,26 @@ export function abrirNoCalendario(ics, nomeArquivo) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+// Entrega o .ics ao aparelho. No iPhone abre um endereço de verdade (montado pelo sw.js),
+// que o iPhone mostra com o botão "Adicionar ao Calendário".
+export function abrirNoCalendario(ics, nomeArquivo) {
+  if (ehIphone() && navigator.serviceWorker?.controller) {
+    window.open(`evento.ics?d=${base64Url(ics)}`, '_blank');
+    return;
+  }
+  baixar(ics, nomeArquivo);
+}
+
+// Plano B: manda o arquivo pelo "Compartilhar" do aparelho (Salvar em Arquivos e abrir de lá).
+export async function compartilharIcs(ics, nomeArquivo) {
+  const arquivo = new File([ics], nomeArquivo, { type: 'text/calendar' });
+  if (navigator.canShare?.({ files: [arquivo] })) {
+    try { await navigator.share({ files: [arquivo], title: 'Lembrete de cobrança' }); } catch { /* cancelou */ }
+    return;
+  }
+  baixar(ics, nomeArquivo);
 }
 
 // Próxima data para os atalhos (amanhã, em N dias, próximo dia X do mês).
