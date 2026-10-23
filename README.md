@@ -14,6 +14,7 @@ Sistema de gestão da Felipão Suplementos
 - Aba **Clientes** na barra de baixo, com o total **a receber**, o que já está **para cobrar** e as **parcelas a vencer**.
 - Lista de quem deve, de quem deve há mais tempo para o mais recente, com destaque para mais de 30 dias.
 - Ficha do cliente com WhatsApp (abre a conversa), observação e histórico com data e hora.
+- **Lembrete de cobrança**: na ficha, "⏰ Lembrar de cobrar" marca dia e hora no calendário do celular (ou no Google Agenda). Na hora, o aviso traz o link que abre o WhatsApp do cliente com a mensagem pronta. "💬 Cobrar no WhatsApp" abre a mensagem na hora, e o texto pode ser mudado no menu. O filtro "⏰ Cobrar" mostra quem tem lembrete.
 - **＋ Fiado** (à vista ou em até 6 parcelas mensais) e **Recebi pagamento** (Pix, dinheiro, cartão), que aceita pagamento parcial e abate primeiro a dívida mais antiga.
 - Lançamento errado não é apagado: é **cancelado** e continua no histórico.
 - **Importar a planilha de devedores**: cole as colunas nome e valor do Google Planilhas ou escolha o CSV. Tem prévia, e importar de novo não duplica. Um nome sem valor seguido de linhas "24/10 - 530" vira parcelas com vencimento.

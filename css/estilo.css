@@ -508,3 +508,6 @@ body.com-nuvem #aviso-backup, body.com-nuvem #aviso-backup-clientes { display: n
 .login-logo { width: 160px; height: auto; }
 .nuvem-titulo { margin: 16px 0 4px; }
 .btn-sem-nuvem { color: var(--texto-suave); text-decoration: underline; font-size: 14px; margin-top: 8px; cursor: pointer; }
+.lembrete-caixa { background: var(--branco); border-radius: 10px; padding: 8px 10px; margin: 6px 0 10px; font-weight: 600; color: var(--azul-escuro); }
+.lembrete-caixa .btn-texto { color: var(--verde); margin-left: 8px; font-weight: 700; cursor: pointer; }
+#texto-cobranca { display: block; width: 100%; padding: 12px; border: 1px solid var(--borda); border-radius: 10px; font-size: 16px; margin-bottom: 6px; }
