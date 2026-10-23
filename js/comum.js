@@ -25,6 +25,10 @@ export function dataCurta(iso) {
 let avisoTimer;
 export function avisar(texto) {
   const el = $('#aviso');
+  // Com uma janela aberta, o aviso vai para dentro dela (senão fica escondido atrás).
+  const janelas = [...document.querySelectorAll('dialog[open]')];
+  const lugar = janelas[janelas.length - 1] || document.body;
+  if (el.parentElement !== lugar) lugar.appendChild(el);
   el.textContent = texto;
   el.hidden = false;
   clearTimeout(avisoTimer);
