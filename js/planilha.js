@@ -257,21 +257,56 @@ export function linhasParaDevedores(linhas, hoje) {
 const reaisBr = (centavos) => (centavos == null ? '' : (centavos / 100).toFixed(2).replace('.', ','));
 const diaBr = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
 
-export function csvClientes(linhas) {
-  const cab = ['nome', 'whatsapp', 'deve', 'vencido', 'a_vencer', 'deve_desde', 'observacao', 'arquivado'];
-  return gerarCsv(cab, linhas.map(({ cliente: c, situacao: s }) => [
-    c.nome, c.whatsapp, reaisBr(s.saldo), reaisBr(s.vencido), reaisBr(s.aVencer),
-    s.desde ? `${s.desdeAproximado ? 'antes de ' : ''}${diaBr(s.desde)}` : '', c.observacao, c.arquivado ? 'sim' : '',
-  ]));
+// Os arquivos do fiado vêm separados em blocos: QUEM DEVE (com total) e QUEM JÁ PAGOU.
+// itens: [{ cliente, lancamentos, situacao }] — devendo já na ordem da tela.
+
+const titulo = (texto, colunas) => [texto, ...Array(colunas - 1).fill('')];
+const vazia = (colunas) => Array(colunas).fill('');
+const desdeTexto = (s) => (s.desde ? `${s.desdeAproximado ? 'antes de ' : ''}${diaBr(s.desde)}` : '');
+const somar = (itens, campo) => itens.reduce((t, i) => t + i.situacao[campo], 0);
+const clientesTexto = (n) => `${n} ${n === 1 ? 'cliente' : 'clientes'}`;
+
+export function csvClientes(devendo, quitados) {
+  const cab = ['nome', 'situacao', 'deve', 'para_cobrar', 'a_vencer', 'deve_desde', 'whatsapp', 'observacao'];
+  const n = cab.length;
+  const linhas = [
+    titulo(`QUEM DEVE (${clientesTexto(devendo.length)})`, n),
+    ...devendo.map(({ cliente: c, situacao: s }) => [
+      c.nome, 'Devendo', reaisBr(s.saldo), reaisBr(s.vencido), reaisBr(s.aVencer), desdeTexto(s), c.whatsapp, c.observacao,
+    ]),
+    ['TOTAL', '', reaisBr(somar(devendo, 'saldo')), reaisBr(somar(devendo, 'vencido')), reaisBr(somar(devendo, 'aVencer')), '', '', ''],
+    vazia(n),
+    titulo(`QUEM JÁ PAGOU (${clientesTexto(quitados.length)})`, n),
+    ...quitados.map(({ cliente: c }) => [
+      c.nome, c.arquivado ? 'Quitado (arquivado)' : 'Quitado', reaisBr(0), '', '', '', c.whatsapp, c.observacao,
+    ]),
+  ];
+  return gerarCsv(cab, linhas);
 }
 
-export function csvLancamentos(lancamentos, nomes) {
-  const cab = ['cliente', 'tipo', 'valor', 'data', 'vencimento', 'parcela', 'descricao', 'forma_pagamento', 'registrado_em', 'cancelado_em', 'motivo_cancelamento'];
-  return gerarCsv(cab, lancamentos.map((l) => [
-    nomes.get(l.clienteId) || '', l.tipo === 'fiado' ? 'Fiado' : 'Pagamento', reaisBr(l.valor), diaBr(l.data),
+export function csvFiadoSeparado(devendo, quitados) {
+  const cab = ['cliente', 'situacao', 'saldo_cliente', 'tipo', 'valor', 'data', 'vencimento', 'parcela', 'descricao', 'forma_pagamento', 'registrado_em'];
+  const n = cab.length;
+  const ordem = (a, b) => (a.vencimento || a.data).localeCompare(b.vencimento || b.data) || a.registradoEm.localeCompare(b.registradoEm);
+  const linhasDe = ({ cliente: c, lancamentos, situacao: s }, rotulo) => lancamentos.filter((l) => !l.cancelado).sort(ordem).map((l) => [
+    c.nome, rotulo, reaisBr(s.saldo), l.tipo === 'fiado' ? 'Fiado' : 'Pagamento', reaisBr(l.valor), diaBr(l.data),
     diaBr(l.vencimento), l.parcela, l.descricao, l.forma, dataBr(l.registradoEm),
-    l.cancelado ? dataBr(l.cancelado.em) : '', l.cancelado?.motivo,
-  ]));
+  ]);
+  const cancelados = [...devendo, ...quitados].flatMap(({ cliente: c, lancamentos }) => lancamentos.filter((l) => l.cancelado)
+    .sort(ordem).map((l) => [
+      c.nome, 'Cancelado', '', l.tipo === 'fiado' ? 'Fiado' : 'Pagamento', reaisBr(l.valor), diaBr(l.data), diaBr(l.vencimento), l.parcela,
+      `CANCELADO em ${dataBr(l.cancelado.em)}${l.cancelado.motivo ? `: ${l.cancelado.motivo}` : ''}${l.descricao ? ` (${l.descricao})` : ''}`,
+      l.forma, dataBr(l.registradoEm),
+    ]));
+  const linhas = [
+    titulo(`QUEM DEVE (${clientesTexto(devendo.length)}) - total ${reaisBr(somar(devendo, 'saldo'))}`, n),
+    ...devendo.flatMap((i) => linhasDe(i, 'Devendo')),
+    vazia(n),
+    titulo(`QUEM JÁ PAGOU (${clientesTexto(quitados.length)})`, n),
+    ...quitados.flatMap((i) => linhasDe(i, i.cliente.arquivado ? 'Quitado (arquivado)' : 'Quitado')),
+  ];
+  if (cancelados.length) linhas.push(vazia(n), titulo('LANÇAMENTOS CANCELADOS (não contam no saldo)', n), ...cancelados);
+  return gerarCsv(cab, linhas);
 }
 
 // Uma linha por produto vendido (a planilha fica fácil de somar e filtrar).
