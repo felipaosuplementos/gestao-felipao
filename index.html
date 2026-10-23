@@ -121,10 +121,41 @@
     <button id="btn-nova-venda" class="fab">＋ Nova venda</button>
   </section>
 
-  <nav class="abas abas-3" aria-label="Telas">
+  <section id="tela-tarefas" class="tela" hidden>
+    <header class="topo">
+      <div class="topo-linha">
+        <div>
+          <div class="topo-loja">Felipão Suplementos <span class="sync-status"></span></div>
+          <h1>Tarefas</h1>
+          <div id="tarefas-hoje-texto" class="topo-data"></div>
+        </div>
+        <button class="btn-icone btn-abrir-menu" aria-label="Menu">☰</button>
+      </div>
+      <form id="form-nova-tarefa" class="nova-tarefa" autocomplete="off">
+        <div class="nova-tarefa-linha">
+          <input id="nova-tarefa-texto" name="texto" placeholder="O que precisa fazer?" enterkeyhint="done">
+          <button type="submit" class="btn-adicionar" aria-label="Adicionar tarefa">＋</button>
+        </div>
+        <div class="chips" id="nova-tarefa-dias">
+          <button type="button" class="chip" data-dia="hoje" aria-pressed="true">Hoje</button>
+          <button type="button" class="chip" data-dia="amanha" aria-pressed="false">Amanhã</button>
+          <button type="button" class="chip" data-dia="outro" aria-pressed="false">📅 Outro dia</button>
+          <label class="chip chip-hora">🕐 <input id="nova-tarefa-hora" type="time" aria-label="Hora (opcional)"></label>
+        </div>
+        <input id="nova-tarefa-data" type="date" class="nova-tarefa-data" aria-label="Dia" hidden>
+      </form>
+    </header>
+    <main>
+      <div id="lista-tarefas"></div>
+      <button id="btn-colar-tarefas" class="btn btn-largo btn-colar">📋 Colar lista do Notas</button>
+    </main>
+  </section>
+
+  <nav class="abas abas-4" aria-label="Telas">
     <button class="aba" data-tela="estoque" aria-current="page">📦<span>Estoque</span></button>
     <button class="aba aba-destaque" data-tela="vendas">🛒<span>Vender</span></button>
     <button class="aba" data-tela="clientes">👥<span>Clientes</span></button>
+    <button class="aba" data-tela="tarefas">✅<span>Tarefas</span><b id="tarefas-contador" class="aba-contador" hidden></b></button>
   </nav>
 
   <!-- Detalhe do produto -->
@@ -232,6 +263,8 @@
       <button class="btn btn-perigo-claro" id="menu-fiado-zero">🧹 Apagar o fiado e começar do zero</button>
       <p class="menu-titulo">Vendas</p>
       <button class="btn" id="menu-exportar-vendas">⬇️ Backup: baixar planilha de vendas</button>
+      <p class="menu-titulo">Tarefas</p>
+      <button class="btn" id="menu-exportar-tarefas">⬇️ Backup: baixar planilha de tarefas</button>
       <p id="menu-info" class="menu-info"></p>
     </div>
   </dialog>
@@ -330,6 +363,47 @@
       <p id="lembrete-whats" class="descricao"></p>
       <button type="submit" id="lembrete-google" class="btn btn-primario btn-largo">📅 Adicionar no Google Agenda</button>
       <button type="button" id="lembrete-remover" class="btn-texto btn-largo" hidden>Remover lembrete</button>
+    </form>
+  </dialog>
+
+  <!-- Tarefa: mudar, avisar, apagar -->
+  <dialog id="dlg-tarefa" class="folha folha-baixa">
+    <form id="form-tarefa" method="dialog" novalidate>
+      <div class="folha-topo">
+        <h2>Tarefa</h2>
+        <button type="button" class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+      </div>
+      <label>O que fazer<textarea name="texto" rows="2" required></textarea></label>
+      <div class="chips chips-motivo">
+        <button type="button" class="chip" data-atalho="+0">Hoje</button>
+        <button type="button" class="chip" data-atalho="+1">Amanhã</button>
+        <button type="button" class="chip" data-atalho="+7">Em 7 dias</button>
+      </div>
+      <div class="duas">
+        <label>Dia<input name="data" type="date" required></label>
+        <label>Hora (opcional)<input name="hora" type="time"></label>
+      </div>
+      <p id="tarefa-info" class="descricao"></p>
+      <button type="submit" id="tarefa-salvar" class="btn btn-primario btn-largo">Salvar</button>
+      <button type="submit" id="tarefa-avisar" class="btn btn-largo">⏰ Avisar no Google Agenda</button>
+      <button type="button" id="tarefa-apagar" class="btn-texto btn-largo">Apagar tarefa</button>
+    </form>
+  </dialog>
+
+  <!-- Colar várias tarefas de uma vez -->
+  <dialog id="dlg-colar-tarefas" class="folha folha-baixa">
+    <form id="form-colar-tarefas" method="dialog" novalidate>
+      <div class="folha-topo">
+        <h2>📋 Colar lista</h2>
+        <button type="button" class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+      </div>
+      <p class="descricao">Copie a lista do Notas e cole aqui. Cada linha vira uma tarefa.</p>
+      <textarea id="colar-tarefas-texto" rows="8" placeholder="Separar pedido do Matheus&#10;Postar no Instagram&#10;Ligar para o fornecedor"></textarea>
+      <div class="chips chips-motivo" id="colar-tarefas-dias">
+        <button type="button" class="chip" data-dia="hoje" aria-pressed="true">Para hoje</button>
+        <button type="button" class="chip" data-dia="amanha" aria-pressed="false">Para amanhã</button>
+      </div>
+      <button type="submit" id="colar-tarefas-confirmar" class="btn btn-primario btn-largo" disabled>Adicionar tarefas</button>
     </form>
   </dialog>
 
@@ -456,6 +530,7 @@
   <script type="module" src="js/app.js"></script>
   <script type="module" src="js/clientes.js"></script>
   <script type="module" src="js/vendas.js"></script>
+  <script type="module" src="js/tarefas.js"></script>
   <script type="module" src="js/nuvem.js"></script>
 </body>
 </html>

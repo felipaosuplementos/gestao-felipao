@@ -6,9 +6,10 @@
 //   clientes    — clientes (nome, WhatsApp, observação)
 //   lancamentos — fiado e pagamentos de cada cliente (nunca apagados; só cancelados)
 //   vendas      — cada venda com itens, forma de pagamento e lucro (nunca apagadas; só canceladas)
+//   tarefas     — tarefas do dia a dia (texto, dia, hora, quando foi feita)
 
 const NOME_BANCO = 'gestao-felipao';
-const VERSAO = 3;
+const VERSAO = 4;
 
 let bancoPromessa = null;
 
@@ -40,8 +41,16 @@ function abrir() {
         const vendas = db.createObjectStore('vendas', { keyPath: 'id' });
         vendas.createIndex('dia', 'dia', { unique: false });
       }
+      if (!db.objectStoreNames.contains('tarefas')) {
+        db.createObjectStore('tarefas', { keyPath: 'id' });
+      }
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      const db = req.result;
+      // Outra aba abriu uma versão mais nova do sistema: esta recarrega para não travar aquela.
+      db.onversionchange = () => { db.close(); location.reload(); };
+      resolve(db);
+    };
     req.onerror = () => reject(req.error);
   });
   return bancoPromessa;
@@ -376,9 +385,34 @@ export async function cancelarVenda(id, motivo) {
   return cancelada;
 }
 
+// ---------- Tarefas ----------
+
+export async function listarTarefas() {
+  const db = await abrir();
+  return pedido(db.transaction('tarefas').objectStore('tarefas').getAll());
+}
+
+// Grava uma ou várias tarefas (registra quando foram criadas e alteradas).
+export async function salvarTarefas(tarefas) {
+  const db = await abrir();
+  const tx = escrever(db, 'tarefas');
+  const dataHora = agora();
+  const salvas = tarefas.map((t) => ({ ...t, id: t.id || novoId(), criadaEm: t.criadaEm || dataHora, atualizadoEm: dataHora }));
+  salvas.forEach((t) => tx.objectStore('tarefas').put(t));
+  await concluir(tx);
+  return salvas;
+}
+
+export async function apagarTarefa(id) {
+  const db = await abrir();
+  const tx = escrever(db, 'tarefas');
+  tx.objectStore('tarefas').delete(id);
+  await concluir(tx);
+}
+
 // ---------- Para a sincronização ----------
 
-export const LOJAS = ['produtos', 'movimentos', 'fotos', 'clientes', 'lancamentos', 'vendas'];
+export const LOJAS = ['produtos', 'movimentos', 'fotos', 'clientes', 'lancamentos', 'vendas', 'tarefas'];
 
 // Tudo o que está guardado neste aparelho (para enviar à nuvem na primeira vez).
 export async function lerTudo() {

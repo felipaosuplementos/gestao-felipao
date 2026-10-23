@@ -29,6 +29,14 @@ Sistema de gestão da Felipão Suplementos
 - **Cancelar venda**: devolve os produtos ao estoque e cancela o fiado dela. Nada é apagado.
 - Botão **🛒 Vender** na ficha do produto e **backup** em planilha de vendas.
 
+## Tarefas (pronto)
+- Aba **Tarefas** na barra de baixo: anotar rápido para **hoje**, **amanhã** ou outro dia, com hora opcional.
+- **Colar lista do Notas**: cada linha vira uma tarefa.
+- Lista separada em **Atrasadas**, **Hoje**, **Amanhã** e **Próximos dias**. O que não foi feito passa sozinho para Atrasadas.
+- As cobranças com ⏰ da ficha do cliente entram na lista no dia delas, com o botão do WhatsApp.
+- ✓ marca como feita (com data e hora). **⏰ Avisar no Google Agenda** em qualquer tarefa. O número de tarefas de hoje aparece no ícone da aba.
+- **Backup**: planilha de tarefas no menu.
+
 ## Sincronização e segurança (ligada)
 - Entrada com a **conta Google** do Felipão. Os dados ficam guardados na nuvem (Firebase) e aparecem no computador e no celular.
 - Cada aparelho guarda uma cópia e **funciona sem internet**. O que for feito offline sobe sozinho quando a conexão voltar.
