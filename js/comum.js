@@ -62,6 +62,9 @@ export async function confirmarComMotivo(titulo, texto, rotuloSim, dica = 'Motiv
   return ok ? campo.value.trim() : null;
 }
 
+// Contagem de estoque: desligada até o Felipão querer contar (Menu → Controlar estoque).
+export const controlaEstoque = () => lerPreferencia('controlarEstoque') === 'sim';
+
 export function lerPreferencia(chave) {
   try { return localStorage.getItem(`felipao.${chave}`); } catch { return null; }
 }

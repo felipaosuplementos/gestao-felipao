@@ -321,16 +321,17 @@ export async function listarVendas(diaDe, diaAte = diaDe) {
 
 // Registra a venda, baixa o estoque e (no fiado) lança a dívida do cliente — tudo junto.
 // `clienteNovo`: cliente criado na hora da venda. `lancamentos`: fiado (já com valores e vencimentos).
-export async function registrarVenda(venda, { clienteNovo = null, lancamentos = [] } = {}) {
+// baixarEstoque: false quando o controle de estoque está desligado (a venda não mexe nas quantidades).
+export async function registrarVenda(venda, { clienteNovo = null, lancamentos = [], baixarEstoque = true } = {}) {
   const db = await abrir();
   const tx = escrever(db, ['vendas', 'produtos', 'movimentos', 'clientes', 'lancamentos']);
   const dataHora = agora();
   const vendas = tx.objectStore('vendas');
   const produtos = tx.objectStore('produtos');
   const numero = (await pedido(vendas.count())) + 1;
-  const salvar = { ...venda, id: venda.id || novoId(), numero, dataHora, cancelada: null };
+  const salvar = { ...venda, id: venda.id || novoId(), numero, dataHora, cancelada: null, ...(baixarEstoque ? {} : { semEstoque: true }) };
 
-  for (const item of salvar.itens) {
+  for (const item of baixarEstoque ? salvar.itens : []) {
     const p = await pedido(produtos.get(item.produtoId));
     if (!p) continue;
     // Quantidade "a conferir" continua sem número; senão desconta (sem ficar negativo).
@@ -364,7 +365,8 @@ export async function cancelarVenda(id, motivo) {
   if (!venda || venda.cancelada) { tx.abort(); return null; }
   const dataHora = agora();
   const produtos = tx.objectStore('produtos');
-  for (const item of venda.itens) {
+  // Venda feita sem controle de estoque não tirou nada: não tem o que devolver.
+  for (const item of venda.semEstoque ? [] : venda.itens) {
     const p = await pedido(produtos.get(item.produtoId));
     if (!p) continue;
     const nova = p.quantidade == null ? null : p.quantidade + item.quantidade;

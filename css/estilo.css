@@ -642,3 +642,15 @@ body.com-nuvem #aviso-backup, body.com-nuvem #aviso-backup-clientes { display: n
   font-size: 16px;
   margin-bottom: 12px;
 }
+
+/* Sem controle de estoque (Menu → Controlar estoque) */
+.sem-estoque .so-estoque { display: none !important; }
+
+/* Venda: custo e preço digitados em cada produto */
+.carrinho-campo { display: flex; flex-direction: column; gap: 2px; margin: 0 !important; font-size: 12px; flex: 1; min-width: 0; }
+.carrinho-campo input { width: 100%; margin: 0 !important; padding: 10px !important; font-size: 17px; }
+.carrinho-rodape { justify-content: space-between; font-size: 14px; color: var(--texto-suave); }
+.carrinho-info { min-width: 0; }
+.lucro-item { color: var(--verde); font-weight: 600; }
+.carrinho-info .negativo { color: var(--vermelho); font-weight: 600; }
+.btn-usar { border: 1px solid var(--azul); background: var(--azul-claro); color: var(--azul-escuro); border-radius: 8px; padding: 4px 10px; margin-left: 4px; font-weight: 600; cursor: pointer; }

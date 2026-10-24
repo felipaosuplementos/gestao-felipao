@@ -2,7 +2,7 @@ import * as db from './db.js';
 import { lerNumero, csvVendas, baixarArquivo } from './planilha.js';
 import {
   $, moedaCentavos, paraCentavos, esc, semAcento, hojeISO, dataCurta,
-  avisar, confirmarComMotivo,
+  avisar, confirmarComMotivo, controlaEstoque,
 } from './comum.js';
 import { situacaoCliente, dividirParcelas, somarMeses } from './fiado.js';
 import { calcularVenda, calcularTroco, FORMAS_PAGAMENTO, nomeForma, resumirVendas } from './venda-calc.js';
@@ -83,12 +83,14 @@ function mudarDia(dias) {
 const venda = {
   produtos: [],
   clientes: [], // { cliente, situacao }
-  carrinho: [], // { produtoId, codigo, nome, variacao, detalhe, quantidade, precoUnit, custoUnit, estoque, salvarPreco }
+  carrinho: [], // { produtoId, codigo, nome, variacao, detalhe, quantidade, precoUnit, custoUnit, estoque, sugestao }
+  ultimos: new Map(), // produtoId -> custo e preço da última venda dele (para sugerir)
   forma: 'pix',
 };
 
 async function abrirNovaVenda(produtoId = null) {
-  const [produtos, clientes, lancamentos] = await Promise.all([db.listarProdutos(), db.listarClientes(), db.listarLancamentos()]);
+  const [produtos, clientes, lancamentos, vendas] = await Promise.all([db.listarProdutos(), db.listarClientes(), db.listarLancamentos(), db.listarVendas()]);
+  venda.ultimos = ultimosValores(vendas);
   venda.produtos = produtos.filter((p) => !p.arquivado).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   const hoje = hojeISO();
   venda.clientes = clientes.filter((c) => !c.arquivado).map((c) => ({
@@ -109,6 +111,23 @@ async function abrirNovaVenda(produtoId = null) {
   if (!produtoId) $('#venda-busca').focus();
 }
 
+// Custo e preço usados na última venda de cada produto (as canceladas não contam).
+function ultimosValores(vendas) {
+  const mapa = new Map();
+  for (const v of [...vendas].filter((x) => !x.cancelada).sort((a, b) => a.dataHora.localeCompare(b.dataHora))) {
+    for (const i of v.itens) mapa.set(i.produtoId, { precoUnit: i.precoUnit, custoUnit: i.custoUnit ?? null, dia: v.dia });
+  }
+  return mapa;
+}
+
+// Sugestão para preencher: a última venda do produto; se nunca vendeu, o que estiver no cadastro.
+function sugestaoPara(p) {
+  const ultima = venda.ultimos.get(p.id);
+  if (ultima) return { ...ultima, origem: 'Última venda' };
+  if (p.preco == null && p.custo == null) return null;
+  return { precoUnit: p.preco == null ? null : paraCentavos(p.preco), custoUnit: p.custo == null ? null : paraCentavos(p.custo), origem: 'Cadastro' };
+}
+
 async function mostrarResultados() {
   const termos = semAcento($('#venda-busca').value).split(/\s+/).filter(Boolean);
   if (!termos.length) { $('#venda-resultados').innerHTML = ''; return; }
@@ -124,8 +143,8 @@ async function mostrarResultados() {
         <div class="item-nome">${esc(p.nome)}</div>
         <div class="item-sub">${esc(detalheProduto(p))}</div>
       </div>
-      <div class="resultado-preco">${p.preco == null ? '<span class="vazio-preco">sem preço</span>' : moedaCentavos(paraCentavos(p.preco))}
-        <small>${p.quantidade == null ? 'estoque ?' : `${p.quantidade} em estoque`}</small></div>
+      <div class="resultado-preco">${venda.ultimos.get(p.id) ? moedaCentavos(venda.ultimos.get(p.id).precoUnit) : ''}
+        ${controlaEstoque() ? `<small>${p.quantidade == null ? 'estoque ?' : `${p.quantidade} em estoque`}</small>` : ''}</div>
     </button></li>`).join('') : '<li class="descricao">Nenhum produto encontrado.</li>';
 }
 
@@ -137,15 +156,15 @@ function adicionarProduto(id) {
   else {
     venda.carrinho.push({
       produtoId: p.id, codigo: p.codigo, nome: p.nome, variacao: p.variacao || '', detalhe: detalheProduto(p),
-      quantidade: 1, precoUnit: p.preco == null ? null : paraCentavos(p.preco),
-      custoUnit: p.custo == null ? null : paraCentavos(p.custo), estoque: p.quantidade, salvarPreco: p.preco == null,
+      // Custo e preço são digitados em cada venda; nada fica fixo no produto.
+      quantidade: 1, precoUnit: null, custoUnit: null, estoque: p.quantidade, sugestao: sugestaoPara(p),
     });
   }
   $('#venda-busca').value = '';
   $('#venda-resultados').innerHTML = '';
   renderCarrinho();
   atualizarVenda();
-  if (item == null && p.preco == null) $(`#venda-carrinho [data-preco="${id}"]`)?.focus();
+  if (item == null) $(`#venda-carrinho [data-custo="${id}"]`)?.focus();
 }
 
 function renderCarrinho() {
@@ -155,7 +174,7 @@ function renderCarrinho() {
         <div class="item-info">
           <div class="item-nome">${esc(i.nome)}</div>
           <div class="item-sub">${esc(i.detalhe)}</div>
-          ${i.estoque != null && i.quantidade > i.estoque ? `<div class="erros">Atenção: só tem ${i.estoque} no estoque</div>` : ''}
+          ${controlaEstoque() && i.estoque != null && i.quantidade > i.estoque ? `<div class="erros">Atenção: só tem ${i.estoque} no estoque</div>` : ''}
         </div>
         <button type="button" class="btn-icone" data-remover="${i.produtoId}" aria-label="Tirar da venda">✕</button>
       </div>
@@ -165,10 +184,28 @@ function renderCarrinho() {
           <span class="carrinho-qtd">${i.quantidade}</span>
           <button type="button" class="btn" data-qtd="1" data-item="${i.produtoId}">＋</button>
         </div>
-        <label class="carrinho-preco">× R$<input data-preco="${i.produtoId}" inputmode="decimal" value="${reaisCampo(i.precoUnit)}" placeholder="preço"></label>
+        <label class="carrinho-campo">Custo R$<input data-custo="${i.produtoId}" inputmode="decimal" value="${reaisCampo(i.custoUnit)}" placeholder="0,00"></label>
+        <label class="carrinho-campo">Venda R$<input data-preco="${i.produtoId}" inputmode="decimal" value="${reaisCampo(i.precoUnit)}" placeholder="0,00"></label>
+      </div>
+      <div class="carrinho-linha carrinho-rodape">
+        <span class="carrinho-info">${infoItem(i)}</span>
         <strong class="carrinho-total">${i.precoUnit == null ? '—' : moedaCentavos(i.precoUnit * i.quantidade)}</strong>
       </div>
     </li>`).join('');
+}
+
+// Embaixo de cada produto: o lucro dele, ou a sugestão da última venda enquanto os campos estão vazios.
+function infoItem(i) {
+  if (i.precoUnit != null && i.custoUnit != null) {
+    const lucro = (i.precoUnit - i.custoUnit) * i.quantidade;
+    return `<span class="${lucro < 0 ? 'negativo' : 'lucro-item'}">Lucro ${moedaCentavos(lucro)}</span>`;
+  }
+  const s = i.sugestao;
+  if (s && i.precoUnit == null && i.custoUnit == null) {
+    const partes = [s.custoUnit != null ? `custo ${moedaCentavos(s.custoUnit)}` : '', s.precoUnit != null ? `vendeu ${moedaCentavos(s.precoUnit)}` : ''].filter(Boolean);
+    return `${s.origem}: ${partes.join(' · ')} <button type="button" class="btn-usar" data-usar="${i.produtoId}">usar</button>`;
+  }
+  return i.precoUnit != null ? 'Sem custo: o lucro não é calculado' : '';
 }
 
 function dadosVenda() {
@@ -197,7 +234,7 @@ function atualizarVenda() {
   const r = dadosVenda();
   $('#venda-subtotal').textContent = r.desconto ? `Subtotal ${moedaCentavos(r.subtotal)} − desconto ${moedaCentavos(r.desconto)}` : `${venda.carrinho.reduce((s, i) => s + i.quantidade, 0)} itens`;
   $('#venda-total').textContent = moedaCentavos(r.total);
-  $('#venda-lucro').textContent = r.lucro == null ? (temItens ? 'Lucro: cadastre o custo para calcular' : '')
+  $('#venda-lucro').textContent = r.lucro == null ? (temItens ? 'Lucro: coloque o custo para calcular' : '')
     : `Lucro estimado: ${moedaCentavos(r.lucro)}${r.itensSemCusto ? ` (${r.itensSemCusto} sem custo)` : ''}`;
   $('#venda-lucro').classList.toggle('negativo', r.lucro != null && r.lucro < 0);
 
@@ -242,6 +279,14 @@ $('#venda-carrinho').addEventListener('click', (e) => {
     renderCarrinho();
     atualizarVenda();
   }
+  const usar = e.target.closest('[data-usar]');
+  if (usar) {
+    const item = venda.carrinho.find((i) => i.produtoId === usar.dataset.usar);
+    item.custoUnit = item.sugestao.custoUnit;
+    item.precoUnit = item.sugestao.precoUnit;
+    renderCarrinho();
+    atualizarVenda();
+  }
   const remover = e.target.closest('[data-remover]');
   if (remover) {
     venda.carrinho = venda.carrinho.filter((i) => i.produtoId !== remover.dataset.remover);
@@ -250,13 +295,16 @@ $('#venda-carrinho').addEventListener('click', (e) => {
   }
 });
 $('#venda-carrinho').addEventListener('input', (e) => {
-  const campo = e.target.closest('[data-preco]');
+  const campo = e.target.closest('[data-preco],[data-custo]');
   if (!campo) return;
-  const item = venda.carrinho.find((i) => i.produtoId === campo.dataset.preco);
+  const item = venda.carrinho.find((i) => i.produtoId === (campo.dataset.preco || campo.dataset.custo));
   const n = lerNumero(campo.value);
-  item.precoUnit = n == null ? null : paraCentavos(n);
-  const total = campo.closest('.carrinho-item').querySelector('.carrinho-total');
-  total.textContent = item.precoUnit == null ? '—' : moedaCentavos(item.precoUnit * item.quantidade);
+  const centavos = n == null ? null : paraCentavos(n);
+  if (campo.dataset.preco) item.precoUnit = centavos; else item.custoUnit = centavos;
+  // Atualiza só o rodapé do item (sem redesenhar, para não tirar o cursor do campo).
+  const li = campo.closest('.carrinho-item');
+  li.querySelector('.carrinho-total').textContent = item.precoUnit == null ? '—' : moedaCentavos(item.precoUnit * item.quantidade);
+  li.querySelector('.carrinho-info').innerHTML = infoItem(item);
   atualizarVenda();
 });
 $('#venda-formas').addEventListener('click', (e) => {
@@ -282,7 +330,7 @@ $('#form-venda').addEventListener('submit', async (e) => {
 
   const registro = {
     dia: hoje,
-    itens: r.itens.map(({ estoque, detalhe, ...i }) => i),
+    itens: r.itens.map(({ estoque, detalhe, sugestao, ...i }) => i),
     subtotal: r.subtotal, desconto: r.desconto, total: r.total, lucro: r.lucro, itensSemCusto: r.itensSemCusto,
     forma: venda.forma, observacao: form.observacao.value.trim(),
   };
@@ -322,7 +370,7 @@ $('#form-venda').addEventListener('submit', async (e) => {
 
   $('#venda-finalizar').disabled = true;
   try {
-    const salva = await db.registrarVenda(registro, extras);
+    const salva = await db.registrarVenda(registro, { ...extras, baixarEstoque: controlaEstoque() });
     $('#dlg-venda').close();
     avisar(`Venda nº ${salva.numero} registrada: ${moedaCentavos(salva.total)}${salva.troco ? ` · troco ${moedaCentavos(salva.troco)}` : ''}`);
     estado.dia = hoje;
@@ -352,16 +400,16 @@ function abrirDetalhe(id) {
   $('#venda-detalhe').innerHTML = `
     <p class="detalhe-sub">${dataCurta(v.dia)} às ${hora(v.dataHora)}${v.cancelada ? ' <span class="etiqueta etiqueta-perigo">Cancelada</span>' : ''}</p>
     <ul class="historico">${v.itens.map((i) => `
-      <li><div>${i.quantidade}x ${esc(i.nome)}${i.variacao ? ` ${esc(i.variacao)}` : ''}<small>${moedaCentavos(i.precoUnit)} cada</small></div>
+      <li><div>${i.quantidade}x ${esc(i.nome)}${i.variacao ? ` ${esc(i.variacao)}` : ''}<small>${moedaCentavos(i.precoUnit)} cada${i.custoUnit != null ? ` · custo ${moedaCentavos(i.custoUnit)}` : ''}</small></div>
       <span class="dif">${moedaCentavos(i.precoUnit * i.quantidade)}</span></li>`).join('')}
       ${v.desconto ? `<li><div>Desconto</div><span class="dif menos">−${moedaCentavos(v.desconto)}</span></li>` : ''}
       <li><div><strong>Total</strong></div><span class="dif"><strong>${moedaCentavos(v.total)}</strong></span></li>
     </ul>
     <p><strong>Pagamento:</strong> ${esc(pagamento.join(' · '))}</p>
-    <p><strong>Lucro estimado:</strong> ${v.lucro == null ? 'cadastre o custo dos produtos para calcular' : `${moedaCentavos(v.lucro)}${v.itensSemCusto ? ` (${v.itensSemCusto} item sem custo)` : ''}`}</p>
+    <p><strong>Lucro estimado:</strong> ${v.lucro == null ? 'sem custo informado' : `${moedaCentavos(v.lucro)}${v.itensSemCusto ? ` (${v.itensSemCusto} item sem custo)` : ''}`}</p>
     ${v.observacao ? `<p class="descricao">${esc(v.observacao)}</p>` : ''}
     ${v.cancelada
-    ? `<p class="erros">Cancelada em ${dataCurta(v.cancelada.em.slice(0, 10))}${v.cancelada.motivo ? ` — ${esc(v.cancelada.motivo)}` : ''}. Os produtos voltaram ao estoque${v.forma === 'fiado' ? ' e o fiado foi cancelado' : ''}.</p>`
+    ? `<p class="erros">Cancelada em ${dataCurta(v.cancelada.em.slice(0, 10))}${v.cancelada.motivo ? ` — ${esc(v.cancelada.motivo)}` : ''}. ${v.semEstoque ? (v.forma === 'fiado' ? 'O fiado foi cancelado.' : '') : `Os produtos voltaram ao estoque${v.forma === 'fiado' ? ' e o fiado foi cancelado' : ''}.`}</p>`
     : '<button class="btn btn-perigo-claro btn-largo" id="btn-cancelar-venda">Cancelar esta venda</button>'}
   `;
   const dlg = $('#dlg-venda-detalhe');
@@ -373,7 +421,7 @@ $('#venda-detalhe').addEventListener('click', async (e) => {
   const v = vendaAberta;
   const motivo = await confirmarComMotivo(
     `Cancelar a venda nº ${v.numero}?`,
-    `Os produtos voltam para o estoque${v.forma === 'fiado' ? ` e o fiado de ${v.clienteNome} é cancelado` : ''}. A venda continua na lista, marcada como cancelada.`,
+    `${v.semEstoque ? (v.forma === 'fiado' ? `O fiado de ${v.clienteNome} é cancelado. ` : '') : `Os produtos voltam para o estoque${v.forma === 'fiado' ? ` e o fiado de ${v.clienteNome} é cancelado` : ''}. `}A venda continua na lista, marcada como cancelada.`,
     'Cancelar venda',
   );
   if (motivo === null) return;

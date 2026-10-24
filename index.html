@@ -31,7 +31,7 @@
     <div class="topo-linha">
       <div>
         <div class="topo-loja">Felipão Suplementos <span class="sync-status"></span></div>
-        <h1>Estoque</h1>
+        <h1>Produtos</h1>
       </div>
       <button id="btn-menu" class="btn-icone btn-abrir-menu" aria-label="Menu">☰</button>
     </div>
@@ -152,7 +152,7 @@
   </section>
 
   <nav class="abas abas-4" aria-label="Telas">
-    <button class="aba" data-tela="estoque" aria-current="page">📦<span>Estoque</span></button>
+    <button class="aba" data-tela="estoque" aria-current="page">📦<span>Produtos</span></button>
     <button class="aba aba-destaque" data-tela="vendas">🛒<span>Vender</span></button>
     <button class="aba" data-tela="clientes">👥<span>Clientes</span></button>
     <button class="aba" data-tela="tarefas">✅<span>Tarefas</span><b id="tarefas-contador" class="aba-contador" hidden></b></button>
@@ -196,7 +196,7 @@
         <label>Preço de venda (R$)<input name="preco" inputmode="decimal" placeholder="0,00"></label>
       </div>
       <p id="form-lucro" class="lucro"></p>
-      <div class="duas">
+      <div class="duas so-estoque">
         <label>Quantidade em estoque<input name="quantidade" inputmode="numeric" placeholder="—"></label>
         <label>Avisar quando tiver<input name="estoqueMinimo" inputmode="numeric" placeholder="2"></label>
       </div>
@@ -246,9 +246,10 @@
         <p id="menu-nuvem-info" class="menu-info"></p>
         <button class="btn" id="menu-sair">🚪 Sair desta conta</button>
       </div>
-      <p class="menu-titulo">Estoque</p>
+      <p class="menu-titulo">Produtos</p>
       <button class="btn" id="menu-exportar">⬇️ Backup: baixar planilha de produtos</button>
-      <button class="btn" id="menu-historico">⬇️ Baixar histórico de estoque</button>
+      <button class="btn" id="menu-controlar-estoque"></button>
+      <button class="btn so-estoque" id="menu-historico">⬇️ Baixar histórico de estoque</button>
       <label class="btn">⬆️ Importar planilha (CSV)
         <input id="input-planilha" type="file" accept=".csv,text/csv,text/plain" hidden>
       </label>

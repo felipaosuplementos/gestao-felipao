@@ -4,7 +4,7 @@ import {
   csvProdutos, csvMovimentos, baixarArquivo, nomeTipo,
 } from './planilha.js';
 import {
-  $, moeda, esc, semAcento, dataHora, avisar, confirmar, lerPreferencia, gravarPreferencia,
+  $, moeda, esc, semAcento, dataHora, avisar, confirmar, lerPreferencia, gravarPreferencia, controlaEstoque,
 } from './comum.js';
 
 const MINIMO_PADRAO = 2;
@@ -33,12 +33,22 @@ function situacao(p) {
 }
 const faltaConferir = (p) => p.quantidade == null || p.preco == null || p.custo == null;
 
-const FILTROS = [
+const FILTROS_ESTOQUE = [
   { id: 'todos', nome: 'Todos', teste: () => true },
   { id: 'acabando', nome: 'Acabando', teste: (p) => situacao(p) === 'baixo' },
   { id: 'zerados', nome: 'Sem estoque', teste: (p) => situacao(p) === 'zero' },
   { id: 'conferir', nome: 'A conferir', teste: faltaConferir },
 ];
+// Sem contar estoque, a lista não tem filtros de quantidade.
+const filtros = () => (controlaEstoque() ? FILTROS_ESTOQUE : FILTROS_ESTOQUE.slice(0, 1));
+
+// Liga/desliga tudo o que é de quantidade na tela (o que já foi guardado não se perde).
+function aplicarModoEstoque() {
+  const ligado = controlaEstoque();
+  document.body.classList.toggle('sem-estoque', !ligado);
+  $('#menu-controlar-estoque').textContent = `📊 Controlar estoque: ${ligado ? 'ligado' : 'desligado'}`;
+  if (!ligado && estado.filtro !== 'arquivados') estado.filtro = 'todos';
+}
 
 // ---------- Lista ----------
 
@@ -95,7 +105,7 @@ function visiveis() {
   return estado.produtos.filter((p) => {
     if (!!p.arquivado !== verArquivados) return false;
     if (estado.categoria && categoriaPrincipal(p.categoria) !== estado.categoria) return false;
-    if (!verArquivados && !FILTROS.find((f) => f.id === estado.filtro).teste(p)) return false;
+    if (!verArquivados && !(filtros().find((f) => f.id === estado.filtro) || filtros()[0]).teste(p)) return false;
     if (!termos.length) return true;
     const texto = semAcento([p.nome, p.marca, p.variacao, p.tamanho, p.categoria, p.codigo].join(' '));
     return termos.every((t) => texto.includes(t));
@@ -104,7 +114,7 @@ function visiveis() {
 
 function renderChips() {
   const ativos = estado.produtos.filter((p) => !p.arquivado);
-  const chips = FILTROS.map((f) => {
+  const chips = filtros().length < 2 ? [] : filtros().map((f) => {
     const n = ativos.filter(f.teste).length;
     return `<button class="chip" data-filtro="${f.id}" aria-pressed="${estado.filtro === f.id}">${f.nome} (${n})</button>`;
   });
@@ -123,8 +133,8 @@ function miniatura(p) {
 
 function seloQuantidade(p) {
   const s = situacao(p);
-  if (s === 'conferir') return '<div class="qtd conferir">a<br>conferir</div>';
-  return `<div class="qtd ${s === 'ok' ? '' : s}">${p.quantidade}<small>${s === 'zero' ? 'zerado' : 'un.'}</small></div>`;
+  if (s === 'conferir') return '<div class="qtd so-estoque conferir">a<br>conferir</div>';
+  return `<div class="qtd so-estoque ${s === 'ok' ? '' : s}">${p.quantidade}<small>${s === 'zero' ? 'zerado' : 'un.'}</small></div>`;
 }
 
 function render() {
@@ -141,7 +151,7 @@ function render() {
       <div class="item-info">
         <div class="item-nome">${esc(p.nome)}</div>
         <div class="item-sub">${esc([p.marca, p.variacao, p.tamanho].filter(Boolean).join(' · '))}</div>
-        <div class="item-preco ${p.preco == null ? 'vazio-preco' : ''}">${p.preco == null ? 'sem preço' : moeda(p.preco)}</div>
+        ${p.preco == null ? '' : `<div class="item-preco">${moeda(p.preco)}</div>`}
       </div>
       ${seloQuantidade(p)}
     </button></li>`).join('');
@@ -186,7 +196,7 @@ async function abrirProduto(id) {
       <div><small>Custo</small><strong>${moeda(p.custo)}</strong></div>
       <div><small>Lucro</small><strong>${lucro == null ? '—' : moeda(lucro)}</strong>${margem == null ? '' : `<small>${margem}%</small>`}</div>
     </div>
-    <div class="estoque-caixa ${s}">
+    <div class="estoque-caixa so-estoque ${s}">
       <div class="numero">${p.quantidade ?? '?'}</div>
       <div class="rotulo">${rotuloEstoque}</div>
       <div class="estoque-botoes">
@@ -201,11 +211,11 @@ async function abrirProduto(id) {
       <button class="btn" data-acao="${p.arquivado ? 'restaurar' : 'arquivar'}">${p.arquivado ? '♻️ Restaurar' : '🗂️ Arquivar'}</button>
     </div>
     ${p.descricao ? `<p class="descricao">${esc(p.descricao)}</p>` : ''}
-    <h3>Histórico de estoque</h3>
+    <div class="so-estoque"><h3>Histórico de estoque</h3>
     ${movimentos.length ? `<ul class="historico">${movimentos.slice(0, 30).map((m) => `
       <li><div>${nomeTipo(m.tipo)}${m.motivo ? ` — ${esc(m.motivo)}` : ''}<small>${dataHora(m.dataHora)} · ficou com ${m.quantidadeDepois ?? '—'}</small></div>
       <span class="dif ${m.diferenca > 0 ? 'mais' : m.diferenca < 0 ? 'menos' : ''}">${m.diferenca > 0 ? '+' : ''}${m.diferenca}</span></li>`).join('')}</ul>`
-    : '<p class="descricao">Nenhuma movimentação ainda.</p>'}
+    : '<p class="descricao">Nenhuma movimentação ainda.</p>'}</div>
   `;
   const dlg = $('#dlg-produto');
   if (!dlg.open) dlg.showModal();
@@ -594,5 +604,22 @@ document.querySelectorAll('dialog').forEach((dlg) => {
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
 }
+$('#menu-controlar-estoque').addEventListener('click', async () => {
+  const ligar = !controlaEstoque();
+  const ok = await confirmar(
+    ligar ? 'Ligar o controle de estoque?' : 'Desligar o controle de estoque?',
+    ligar ? 'As quantidades voltam a aparecer e cada venda passa a descontar do estoque. Confira as quantidades dos produtos.'
+      : 'As quantidades somem da tela e as vendas não mexem mais no estoque. O que já está guardado não se perde: dá para ligar de novo quando quiser.',
+    ligar ? 'Ligar' : 'Desligar', false,
+  );
+  if (!ok) return;
+  gravarPreferencia('controlarEstoque', ligar ? 'sim' : 'nao');
+  aplicarModoEstoque();
+  render();
+  $('#dlg-menu').close();
+  avisar(ligar ? 'Controle de estoque ligado' : 'Controle de estoque desligado');
+});
+
+aplicarModoEstoque();
 db.pedirArmazenamentoPersistente();
 carregar();
