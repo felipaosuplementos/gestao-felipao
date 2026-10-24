@@ -2,7 +2,8 @@
 Sistema de gestão da Felipão Suplementos
 
 ## Módulo 1 — Produtos e estoque (pronto)
-- Lista de produtos com busca, filtro por categoria e avisos de **acabando**, **sem estoque** e **a conferir**.
+- Aba **Produtos**: lista com busca e filtro por categoria.
+- **Controle de estoque desligado** por enquanto (Menu → Controlar estoque). Ligado, mostra quantidades e avisos de **acabando**, **sem estoque** e **a conferir**, e cada venda desconta do estoque.
 - Cadastro com nome, marca, sabor/variação, categoria, tamanho, custo, preço (lucro calculado), quantidade e foto.
 - Botões de **Entrada** e **Saída** com motivo; todo ajuste fica no histórico com data e hora.
 - "Outro sabor" cria uma cópia do produto para cadastrar outro sabor rapidinho.
@@ -23,9 +24,9 @@ Sistema de gestão da Felipão Suplementos
 
 ## Módulo 3 — Vendas (pronto)
 - Aba **Vender** no meio da barra de baixo, com o total vendido no dia, o lucro estimado e o número de vendas, além da soma por forma de pagamento. Dá para ver outros dias.
-- **Nova venda**: busca o produto (com foto), ajusta a quantidade e o preço, e aplica desconto. Produto sem preço guarda o preço usado na venda.
+- **Nova venda**: busca o produto (com foto), ajusta a quantidade e digita o **custo** e o **preço de venda** de cada produto, com o lucro do item na hora. Nada fica fixo no produto: o sistema só sugere os valores da última venda dele (botão "usar").
 - Pagamento por **Pix, dinheiro (com troco), débito, crédito (até 12x), link de pagamento ou fiado**. No fiado, escolhe um cliente da lista ou digita um novo, à vista ou parcelado.
-- Ao finalizar, **o estoque baixa sozinho** e a venda fica registrada com data, hora e lucro (preço − custo). No fiado, a dívida entra na ficha do cliente.
+- Ao finalizar, a venda fica registrada com data, hora e lucro (preço − custo); com o controle de estoque ligado, **o estoque baixa sozinho**. No fiado, a dívida entra na ficha do cliente.
 - **Cancelar venda**: devolve os produtos ao estoque e cancela o fiado dela. Nada é apagado.
 - Botão **🛒 Vender** na ficha do produto e **backup** em planilha de vendas.
 
