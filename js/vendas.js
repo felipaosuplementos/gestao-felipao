@@ -136,7 +136,16 @@ async function mostrarResultados() {
     return termos.every((t) => texto.includes(t));
   }).slice(0, 8);
   const urls = await Promise.all(achados.map(urlFoto));
-  $('#venda-resultados').innerHTML = achados.length ? achados.map((p, i) => `
+  const digitado = $('#venda-busca').value.trim().replace(/\s+/g, ' ');
+  // Produto que ainda não está cadastrado: entra na venda e já fica salvo em Produtos.
+  const novo = `<li><button type="button" class="resultado resultado-novo" data-novo>
+      <div class="miniatura">＋</div>
+      <div class="item-info">
+        <div class="item-nome">Vender "${esc(digitado)}" como produto novo</div>
+        <div class="item-sub">Fica salvo em Produtos para as próximas vendas</div>
+      </div>
+    </button></li>`;
+  $('#venda-resultados').innerHTML = (achados.length ? achados.map((p, i) => `
     <li><button type="button" class="resultado" data-produto="${p.id}">
       <div class="miniatura ${urls[i] ? 'com-foto' : ''}" ${urls[i] ? `style="background-image:url('${urls[i]}')"` : ''}>${urls[i] ? '' : '📦'}</div>
       <div class="item-info">
@@ -145,7 +154,7 @@ async function mostrarResultados() {
       </div>
       <div class="resultado-preco">${venda.ultimos.get(p.id) ? moedaCentavos(venda.ultimos.get(p.id).precoUnit) : ''}
         ${controlaEstoque() ? `<small>${p.quantidade == null ? 'estoque ?' : `${p.quantidade} em estoque`}</small>` : ''}</div>
-    </button></li>`).join('') : '<li class="descricao">Nenhum produto encontrado.</li>';
+    </button></li>`).join('') : '<li class="descricao">Nenhum produto cadastrado com esse nome.</li>') + novo;
 }
 
 function adicionarProduto(id) {
@@ -165,6 +174,22 @@ function adicionarProduto(id) {
   renderCarrinho();
   atualizarVenda();
   if (item == null) $(`#venda-carrinho [data-custo="${id}"]`)?.focus();
+}
+
+async function venderProdutoNovo() {
+  const digitado = $('#venda-busca').value.trim().replace(/\s+/g, ' ');
+  if (!digitado) return;
+  const nome = digitado[0].toUpperCase() + digitado.slice(1);
+  const igual = venda.produtos.find((p) => chaveNome(p.nome) === chaveNome(nome));
+  if (igual) { adicionarProduto(igual.id); return; }
+  const produto = await db.salvarProduto({
+    id: db.novoId(), codigo: `p-${Date.now().toString(36)}`, nome,
+    marca: '', variacao: '', categoria: '', tamanho: '', descricao: '',
+    custo: null, preco: null, quantidade: null, estoqueMinimo: null, arquivado: false, cadastroNaVenda: true,
+  }, { tipo: 'cadastro', motivo: 'Cadastrado na venda' });
+  venda.produtos.push(produto);
+  adicionarProduto(produto.id);
+  avisar(`"${nome}" cadastrado em Produtos`);
 }
 
 function renderCarrinho() {
@@ -266,10 +291,12 @@ $('#venda-busca').addEventListener('keydown', (e) => {
   e.preventDefault();
   const primeiro = $('#venda-resultados [data-produto]');
   if (primeiro) adicionarProduto(primeiro.dataset.produto);
+  else if ($('#venda-resultados [data-novo]')) venderProdutoNovo();
 });
 $('#venda-resultados').addEventListener('click', (e) => {
   const r = e.target.closest('[data-produto]');
   if (r) adicionarProduto(r.dataset.produto);
+  if (e.target.closest('[data-novo]')) venderProdutoNovo();
 });
 $('#venda-carrinho').addEventListener('click', (e) => {
   const qtd = e.target.closest('[data-qtd]');

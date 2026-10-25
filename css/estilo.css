@@ -654,3 +654,5 @@ body.com-nuvem #aviso-backup, body.com-nuvem #aviso-backup-clientes { display: n
 .lucro-item { color: var(--verde); font-weight: 600; }
 .carrinho-info .negativo { color: var(--vermelho); font-weight: 600; }
 .btn-usar { border: 1px solid var(--azul); background: var(--azul-claro); color: var(--azul-escuro); border-radius: 8px; padding: 4px 10px; margin-left: 4px; font-weight: 600; cursor: pointer; }
+.resultado-novo { border-style: dashed; border-color: var(--azul); }
+.resultado-novo .item-nome { white-space: normal; color: var(--azul-escuro); }

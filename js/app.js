@@ -150,7 +150,8 @@ function render() {
       ${miniatura(p)}
       <div class="item-info">
         <div class="item-nome">${esc(p.nome)}</div>
-        <div class="item-sub">${esc([p.marca, p.variacao, p.tamanho].filter(Boolean).join(' · '))}</div>
+        <div class="item-sub">${esc([p.marca, p.variacao, p.tamanho].filter(Boolean).join(' · ')
+          || (p.cadastroNaVenda ? 'Cadastrado na venda: complete quando puder' : ''))}</div>
         ${p.preco == null ? '' : `<div class="item-preco">${moeda(p.preco)}</div>`}
       </div>
       ${seloQuantidade(p)}
