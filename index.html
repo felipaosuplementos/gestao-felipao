@@ -26,6 +26,20 @@
     </div>
   </div>
 
+  <section id="tela-inicio" class="tela" hidden>
+    <header class="topo">
+      <div class="topo-linha">
+        <div>
+          <div class="topo-loja">Felipão Suplementos <span class="sync-status"></span></div>
+          <h1>Painel</h1>
+          <div id="painel-data" class="topo-data"></div>
+        </div>
+        <button class="btn-icone btn-abrir-menu" aria-label="Menu">☰</button>
+      </div>
+    </header>
+    <main id="painel"></main>
+  </section>
+
   <section id="tela-estoque" class="tela">
   <header class="topo">
     <div class="topo-linha">
@@ -152,8 +166,9 @@
     </main>
   </section>
 
-  <nav class="abas abas-4" aria-label="Telas">
-    <button class="aba" data-tela="estoque" aria-current="page">📦<span>Produtos</span></button>
+  <nav class="abas abas-5" aria-label="Telas">
+    <button class="aba" data-tela="inicio" aria-current="page">🏠<span>Início</span></button>
+    <button class="aba" data-tela="estoque">📦<span>Produtos</span></button>
     <button class="aba aba-destaque" data-tela="vendas">🛒<span>Vender</span></button>
     <button class="aba" data-tela="clientes">👥<span>Clientes</span></button>
     <button class="aba" data-tela="tarefas">✅<span>Tarefas</span><b id="tarefas-contador" class="aba-contador" hidden></b></button>
@@ -534,6 +549,7 @@
   <script type="module" src="js/clientes.js"></script>
   <script type="module" src="js/vendas.js"></script>
   <script type="module" src="js/tarefas.js"></script>
+  <script type="module" src="js/painel.js"></script>
   <script type="module" src="js/nuvem.js"></script>
 </body>
 </html>

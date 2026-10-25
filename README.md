@@ -30,6 +30,13 @@ Sistema de gestão da Felipão Suplementos
 - **Cancelar venda**: devolve os produtos ao estoque e cancela o fiado dela. Nada é apagado.
 - Botão **🛒 Vender** na ficha do produto e **backup** em planilha de vendas.
 
+## Módulo 4 — Painel (pronto)
+- Aba **Início**, a primeira tela ao abrir o sistema. Só para olhar: tocar num bloco leva para a tela dele.
+- **Hoje**: vendido, lucro e número de vendas.
+- **Este mês**: vendido, lucro, **entrou no caixa** (vendas pagas na hora + pagamentos de fiado recebidos) e **ticket médio**, comparando com o mesmo período do mês passado.
+- **Gráficos**: vendas por dia do mês e últimos 6 meses (toque na barra mostra vendido, lucro e número de vendas).
+- **Fiado** a receber e para cobrar, **tarefas de hoje** e os **5 mais vendidos** do mês.
+
 ## Tarefas (pronto)
 - Aba **Tarefas** na barra de baixo: anotar rápido para **hoje**, **amanhã** ou outro dia, com hora opcional.
 - **Colar lista do Notas**: cada linha vira uma tarefa.
