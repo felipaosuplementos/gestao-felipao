@@ -586,7 +586,8 @@ document.querySelector('.abas').addEventListener('click', (e) => {
   if (aba) mostrarTela(aba.dataset.tela);
 });
 document.addEventListener('mostrar-tela', (e) => mostrarTela(e.detail));
-mostrarTela(['clientes', 'vendas', 'tarefas'].includes(lerPreferencia('tela')) ? lerPreferencia('tela') : 'estoque');
+// O sistema sempre abre no Painel.
+mostrarTela('inicio');
 // Venda feita ou cancelada muda o estoque: recarrega a lista.
 document.addEventListener('dados-mudaram', () => {
   // Pode ter chegado foto nova da nuvem: refaz o cache das fotos.
