@@ -656,3 +656,65 @@ body.com-nuvem #aviso-backup, body.com-nuvem #aviso-backup-clientes { display: n
 .btn-usar { border: 1px solid var(--azul); background: var(--azul-claro); color: var(--azul-escuro); border-radius: 8px; padding: 4px 10px; margin-left: 4px; font-weight: 600; cursor: pointer; }
 .resultado-novo { border-style: dashed; border-color: var(--azul); }
 .resultado-novo .item-nome { white-space: normal; color: var(--azul-escuro); }
+
+/* Painel */
+.abas-5 { grid-template-columns: repeat(5, 1fr); }
+.abas-5 .aba span { font-size: 12px; }
+#painel { display: grid; gap: 12px; }
+.painel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 14px 16px;
+  background: var(--branco);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  text-align: left;
+  color: var(--texto);
+  position: relative;
+}
+button.painel-card { cursor: pointer; }
+button.painel-card:active { background: var(--azul-claro); }
+.painel-titulo, .painel-rotulo { font-size: 14px; font-weight: 700; color: var(--texto-suave); }
+.painel-titulo::first-letter { text-transform: uppercase; }
+.painel-heroi { font-size: 40px; font-weight: 800; color: var(--azul-escuro); line-height: 1.1; }
+.painel-heroi-menor { font-size: 26px; }
+.painel-linha { font-size: 15px; color: var(--texto-suave); }
+.painel-nota { font-size: 12px; color: var(--texto-suave); }
+.painel-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.painel-grade > span { min-width: 0; }
+.painel-grade small { display: block; font-size: 13px; color: var(--texto-suave); }
+.painel-grade strong { font-size: 20px; color: var(--texto); white-space: nowrap; }
+.painel-grade strong.alerta { color: var(--laranja); }
+.sobe { color: var(--verde); font-weight: 700; }
+.desce { color: var(--vermelho); font-weight: 700; }
+.painel-tarefas { margin: 0; padding-left: 20px; font-size: 15px; }
+.painel-tarefas li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.painel-ranking { margin: 0; padding-left: 22px; display: grid; gap: 6px; font-size: 15px; }
+.painel-ranking li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: baseline; }
+.ranking-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ranking-qtd, .ranking-valor { font-variant-numeric: tabular-nums; color: var(--texto-suave); white-space: nowrap; }
+.ranking-valor { color: var(--texto); font-weight: 600; min-width: 64px; text-align: right; }
+.grafico { position: relative; width: 100%; overflow: hidden; }
+.grafico svg { display: block; width: 100%; height: auto; }
+.grafico .grade { stroke: #e6ecf5; stroke-width: 1; }
+.grafico .eixo { fill: var(--texto-suave); font-size: 11px; font-variant-numeric: tabular-nums; }
+.grafico .barra path { fill: #5f8ee0; }
+.grafico .barra.atual path { fill: var(--azul); }
+.grafico .barra.ativa path { fill: var(--azul-escuro); }
+.grafico .alvo { fill: transparent; cursor: pointer; }
+.grafico-dica {
+  position: absolute;
+  z-index: 2;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--texto);
+  color: var(--branco);
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
