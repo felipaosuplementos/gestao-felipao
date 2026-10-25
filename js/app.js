@@ -39,8 +39,9 @@ const FILTROS_ESTOQUE = [
   { id: 'zerados', nome: 'Sem estoque', teste: (p) => situacao(p) === 'zero' },
   { id: 'conferir', nome: 'A conferir', teste: faltaConferir },
 ];
+const semFoto = { id: 'sem-foto', nome: '📷 Sem foto', teste: (p) => !estado.fotos.has(p.id) };
 // Sem contar estoque, a lista não tem filtros de quantidade.
-const filtros = () => (controlaEstoque() ? FILTROS_ESTOQUE : FILTROS_ESTOQUE.slice(0, 1));
+const filtros = () => (controlaEstoque() ? [...FILTROS_ESTOQUE, semFoto] : [FILTROS_ESTOQUE[0], semFoto]);
 
 // Liga/desliga tudo o que é de quantidade na tela (o que já foi guardado não se perde).
 function aplicarModoEstoque() {
@@ -145,6 +146,7 @@ function render() {
   $('#contagem').textContent = estado.produtos.length
     ? `${lista.length} de ${estado.filtro === 'arquivados' ? estado.produtos.length - todos.length : todos.length} produtos`
     : '';
+  $('#btn-copiar-lista').hidden = estado.filtro !== 'sem-foto' || !lista.length;
   $('#lista').innerHTML = lista.map((p) => `
     <li><button class="item" data-id="${p.id}">
       ${miniatura(p)}
@@ -554,6 +556,17 @@ $('#chips').addEventListener('click', (e) => {
   if (!chip) return;
   estado.filtro = chip.dataset.filtro === estado.filtro && chip.dataset.filtro === 'arquivados' ? 'todos' : chip.dataset.filtro;
   render();
+});
+// Copia os nomes da lista que está na tela (ex.: produtos sem foto) para colar no WhatsApp ou na conversa.
+$('#btn-copiar-lista').addEventListener('click', async () => {
+  const texto = visiveis().map((p) => [p.nome, p.marca, p.variacao, p.tamanho].filter(Boolean).join(' · ')).join('\n');
+  try {
+    await navigator.clipboard.writeText(texto);
+    const n = visiveis().length;
+    avisar(`Lista com ${n} produto${n > 1 ? 's' : ''} copiada`);
+  } catch {
+    avisar('Não deu para copiar neste aparelho');
+  }
 });
 $('#filtro-categoria').addEventListener('change', (e) => { estado.categoria = e.target.value; render(); });
 $('#busca').addEventListener('input', (e) => { estado.busca = e.target.value; render(); });
