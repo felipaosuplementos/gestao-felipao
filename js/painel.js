@@ -144,8 +144,8 @@ function render() {
       <div class="grafico" id="grafico-dias"></div>
     </section>
 
-    <button class="painel-card" data-ir="clientes">
-      <span class="painel-titulo">Fiado</span>
+    <button class="painel-card" data-ir="cobrancas">
+      <span class="painel-titulo">Fiado e cobranças</span>
       <span class="painel-grade">
         <span><small>A receber</small><strong>${reais(d.receber)}</strong></span>
         <span><small>Para cobrar</small><strong class="${d.vencido ? 'alerta' : ''}">${reais(d.vencido)}</strong></span>
@@ -263,7 +263,9 @@ document.addEventListener('click', (e) => {
 
 $('#painel').addEventListener('click', (e) => {
   const bloco = e.target.closest('[data-ir]');
-  if (bloco) document.dispatchEvent(new CustomEvent('mostrar-tela', { detail: bloco.dataset.ir }));
+  if (!bloco) return;
+  if (bloco.dataset.ir === 'cobrancas') document.dispatchEvent(new CustomEvent('mostrar-cobrancas'));
+  else document.dispatchEvent(new CustomEvent('mostrar-tela', { detail: bloco.dataset.ir }));
 });
 document.addEventListener('tela-aberta', (e) => { if (e.detail === 'inicio') carregar(); });
 document.addEventListener('dados-mudaram', () => { if (!$('#tela-inicio').hidden) carregar(); });

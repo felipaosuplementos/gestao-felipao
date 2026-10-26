@@ -6,7 +6,9 @@ import * as db from './db.js';
 import { gerarCsv, baixarArquivo } from './planilha.js';
 import { $, esc, hojeISO, dataCurta, dataHora, avisar, confirmar, moedaCentavos } from './comum.js';
 import { situacaoCliente } from './fiado.js';
-import { textoCobranca, valorCobrar, mensagemCobranca, linkCobranca, linkGoogleAgenda, dataAtalho } from './lembrete.js';
+import {
+  textoCobranca, valorCobrar, mensagemCobranca, linkCobranca, linkGoogleAgenda, dataAtalho, comCobrancaFeita,
+} from './lembrete.js';
 
 const DIAS_FEITAS = 7; // feitas que continuam aparecendo na tela (o resto fica no backup)
 
@@ -193,8 +195,8 @@ $('#lista-tarefas').addEventListener('click', async (e) => {
   if (cobrei) {
     const i = estado.cobrancas.find((x) => x.cliente.id === cobrei);
     alvo.classList.add('marcada');
-    const { lembrete: _feito, ...resto } = i.cliente;
-    await db.salvarCliente(resto);
+    // Fica registrada no histórico de cobranças do cliente (sem marcar a próxima).
+    await db.salvarCliente(comCobrancaFeita(i.cliente, valorCobrar(i.situacao), null));
     avisar(`Cobrança de ${i.cliente.nome} feita ✓`);
     await carregar();
   }
