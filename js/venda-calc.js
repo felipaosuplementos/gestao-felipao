@@ -1,10 +1,12 @@
 // Contas da venda, em centavos.
 
 // itens: [{ quantidade, precoUnit, custoUnit }] — custoUnit pode ser null (custo não cadastrado).
-export function calcularVenda(itens, desconto = 0) {
+// Frete: se o cliente paga, soma no total (não é lucro); se o Felipão paga, sai do lucro.
+export function calcularVenda(itens, desconto = 0, frete = 0, fretePagoPor = 'cliente') {
   const subtotal = itens.reduce((s, i) => s + i.quantidade * i.precoUnit, 0);
   const descontoValido = Math.min(Math.max(0, desconto), subtotal);
-  const total = subtotal - descontoValido;
+  const freteValido = Math.max(0, frete || 0);
+  const total = subtotal - descontoValido + (fretePagoPor === 'cliente' ? freteValido : 0);
   const comCusto = itens.filter((i) => i.custoUnit != null);
   const custo = comCusto.reduce((s, i) => s + i.quantidade * i.custoUnit, 0);
   // Lucro só dos itens com custo; o desconto sai proporcionalmente desses itens.
@@ -14,7 +16,8 @@ export function calcularVenda(itens, desconto = 0) {
     subtotal,
     desconto: descontoValido,
     total,
-    lucro: comCusto.length ? vendaComCusto - descontoComCusto - custo : null,
+    lucro: comCusto.length ? vendaComCusto - descontoComCusto - custo - (fretePagoPor === 'eu' ? freteValido : 0) : null,
+    frete: freteValido,
     itensSemCusto: itens.length - comCusto.length,
   };
 }
