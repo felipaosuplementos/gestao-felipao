@@ -731,3 +731,27 @@ button.painel-card:active { background: var(--azul-claro); }
 .cobranca-acoes .btn { min-height: 46px; padding: 8px 6px; font-size: 15px; text-decoration: none; }
 .grupo-titulo.grupo-suave { color: var(--texto-suave); font-size: 15px; }
 .chips-dia .chip { min-height: 48px; }
+
+/* Tarefa: marca separada de "conferido" */
+.btn-conferir {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 64px;
+  min-height: 52px;
+  padding: 4px 6px;
+  border: 1px dashed var(--borda);
+  border-radius: 12px;
+  background: var(--fundo);
+  color: var(--texto-suave);
+  cursor: pointer;
+}
+.btn-conferir .conferir-marca { font-size: 18px; line-height: 1; opacity: .35; }
+.btn-conferir small { font-size: 11px; font-weight: 600; }
+.btn-conferir.ligado { border: 1px solid var(--verde); background: #e7f6ec; color: var(--verde); }
+.btn-conferir.ligado .conferir-marca { opacity: 1; }
+.tarefa-ok { border-color: #b7e2c4; }
+.tarefa-conferida { font-size: 13px; font-weight: 600; color: var(--verde); }

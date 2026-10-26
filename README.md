@@ -45,7 +45,7 @@ Sistema de gestão da Felipão Suplementos
 - **Colar lista do Notas**: cada linha vira uma tarefa.
 - Lista separada em **Atrasadas**, **Hoje**, **Amanhã** e **Próximos dias**. O que não foi feito passa sozinho para Atrasadas.
 - As cobranças com ⏰ da ficha do cliente entram na lista no dia delas, com o botão do WhatsApp.
-- ✓ marca como feita (com data e hora). **⏰ Avisar no Google Agenda** em qualquer tarefa. O número de tarefas de hoje aparece no ícone da aba.
+- ✓ marca como feita (com data e hora). O botão **✔ Conferir**, separado, marca a tarefa como conferida (com a hora) sem tirá-la da lista. **⏰ Avisar no Google Agenda** em qualquer tarefa. O número de tarefas de hoje aparece no ícone da aba.
 - **Backup**: planilha de tarefas no menu.
 
 ## Sincronização e segurança (ligada)
