@@ -82,17 +82,25 @@
         </div>
         <button class="btn-icone btn-abrir-menu" aria-label="Menu">☰</button>
       </div>
+      <div class="segmento" id="clientes-modo" role="tablist">
+        <button data-modo="clientes" aria-pressed="true">👥 Clientes</button>
+        <button data-modo="cobrancas" aria-pressed="false">💰 Cobranças <b id="cobrancas-contador" class="segmento-contador" hidden></b></button>
+      </div>
       <div class="resumo-fiado">
         <div><small>A receber</small><strong id="total-receber">R$ 0,00</strong></div>
         <div><small>Para cobrar</small><strong id="total-vencido">R$ 0,00</strong></div>
         <div><small>Parcelas a vencer</small><strong id="total-a-vencer">R$ 0,00</strong></div>
       </div>
-      <input id="busca-clientes" type="search" placeholder="Buscar cliente…" autocomplete="off">
-      <div class="filtros">
-        <div id="chips-clientes" class="chips"></div>
+      <div id="clientes-filtros">
+        <input id="busca-clientes" type="search" placeholder="Buscar cliente…" autocomplete="off">
+        <div class="filtros">
+          <div id="chips-clientes" class="chips"></div>
+        </div>
       </div>
     </header>
     <main>
+      <div id="lista-cobrancas" hidden></div>
+      <div id="clientes-area">
       <div id="aviso-backup-clientes" class="aviso" hidden></div>
       <div id="vazio-clientes" class="vazio" hidden>
         <p><strong>Nenhum cliente cadastrado ainda.</strong></p>
@@ -101,6 +109,7 @@
       </div>
       <p id="contagem-clientes" class="contagem"></p>
       <ul id="lista-clientes" class="lista"></ul>
+      </div>
     </main>
     <button id="btn-novo-cliente" class="fab">＋ Novo cliente</button>
   </section>
@@ -170,7 +179,7 @@
     <button class="aba" data-tela="inicio" aria-current="page">🏠<span>Início</span></button>
     <button class="aba" data-tela="estoque">📦<span>Produtos</span></button>
     <button class="aba aba-destaque" data-tela="vendas">🛒<span>Vender</span></button>
-    <button class="aba" data-tela="clientes">👥<span>Clientes</span></button>
+    <button class="aba" data-tela="clientes">👥<span>Clientes</span><b id="clientes-contador" class="aba-contador" hidden></b></button>
     <button class="aba" data-tela="tarefas">✅<span>Tarefas</span><b id="tarefas-contador" class="aba-contador" hidden></b></button>
   </nav>
 
@@ -361,11 +370,12 @@
   <dialog id="dlg-lembrete" class="folha folha-baixa">
     <form id="form-lembrete" method="dialog" novalidate>
       <div class="folha-topo">
-        <h2>⏰ Lembrar de cobrar</h2>
+        <h2>⏰ Marcar cobrança</h2>
         <button type="button" class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
       </div>
       <p id="lembrete-cliente" class="mov-produto"></p>
-      <div class="chips chips-motivo">
+      <p class="descricao">Toque no dia e pronto: a cobrança aparece em Clientes → 💰 Cobranças no dia marcado.</p>
+      <div class="chips chips-motivo chips-dia">
         <button type="button" class="chip" data-atalho="+1">Amanhã</button>
         <button type="button" class="chip" data-atalho="+3">Em 3 dias</button>
         <button type="button" class="chip" data-atalho="+7">Em 7 dias</button>
@@ -373,14 +383,9 @@
         <button type="button" class="chip" data-atalho="dia10">Dia 10</button>
         <button type="button" class="chip" data-atalho="dia15">Dia 15</button>
       </div>
-      <div class="duas">
-        <label>Dia<input name="data" type="date" required></label>
-        <label>Hora<input name="hora" type="time" value="09:00"></label>
-      </div>
-      <p class="descricao">Abre o Google Agenda com o lembrete pronto: é só tocar em Salvar. O app do Google Agenda avisa no dia e hora marcados, mesmo com o sistema fechado. Dentro dele tem o link para abrir o WhatsApp com a mensagem de cobrança pronta.</p>
-      <p id="lembrete-whats" class="descricao"></p>
-      <button type="submit" id="lembrete-google" class="btn btn-primario btn-largo">📅 Adicionar no Google Agenda</button>
-      <button type="button" id="lembrete-remover" class="btn-texto btn-largo" hidden>Remover lembrete</button>
+      <label>Ou escolha outro dia<input name="data" type="date"></label>
+      <button type="submit" id="lembrete-salvar" class="btn btn-primario btn-largo">Salvar este dia</button>
+      <button type="button" id="lembrete-remover" class="btn-texto btn-largo" hidden>Desmarcar cobrança</button>
     </form>
   </dialog>
 
@@ -422,6 +427,26 @@
         <button type="button" class="chip" data-dia="amanha" aria-pressed="false">Para amanhã</button>
       </div>
       <button type="submit" id="colar-tarefas-confirmar" class="btn btn-primario btn-largo" disabled>Adicionar tarefas</button>
+    </form>
+  </dialog>
+
+  <!-- Cobrei: registra e pergunta quando cobrar de novo -->
+  <dialog id="dlg-cobrei" class="folha folha-baixa">
+    <form id="form-cobrei" method="dialog" novalidate>
+      <div class="folha-topo">
+        <h2>✓ Cobrei</h2>
+        <button type="button" class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+      </div>
+      <p id="cobrei-cliente" class="mov-produto"></p>
+      <p class="descricao">Quando cobrar de novo, se não pagar?</p>
+      <div class="chips chips-motivo chips-dia">
+        <button type="button" class="chip" data-proxima="+3">Em 3 dias</button>
+        <button type="button" class="chip" data-proxima="+7">Em 7 dias</button>
+        <button type="button" class="chip" data-proxima="+15">Em 15 dias</button>
+        <button type="button" class="chip" data-proxima="">Não remarcar</button>
+      </div>
+      <label>Ou escolha outro dia<input name="data" type="date"></label>
+      <button type="submit" class="btn btn-primario btn-largo">Salvar este dia</button>
     </form>
   </dialog>
 

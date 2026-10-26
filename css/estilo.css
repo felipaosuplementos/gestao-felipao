@@ -718,3 +718,16 @@ button.painel-card:active { background: var(--azul-claro); }
   pointer-events: none;
 }
 .so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Clientes | Cobranças */
+.segmento { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 10px; padding: 4px; border-radius: 12px; background: var(--azul-escuro); }
+.segmento button { min-height: 42px; border: 0; border-radius: 9px; background: transparent; color: var(--branco); font-weight: 700; font-size: 15px; cursor: pointer; }
+.segmento button[aria-pressed="true"] { background: var(--branco); color: var(--azul); }
+.segmento-contador { display: inline-block; min-width: 20px; height: 20px; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: var(--vermelho); color: var(--branco); font-size: 12px; line-height: 20px; }
+.lista-cobrancas { gap: 10px; }
+.cobranca { background: var(--branco); border: 1px solid var(--borda); border-radius: var(--raio); padding: 10px; }
+.cobranca-topo { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; background: none; padding: 0; text-align: left; cursor: pointer; }
+.cobranca-acoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.cobranca-acoes .btn { min-height: 46px; padding: 8px 6px; font-size: 15px; text-decoration: none; }
+.grupo-titulo.grupo-suave { color: var(--texto-suave); font-size: 15px; }
+.chips-dia .chip { min-height: 48px; }
