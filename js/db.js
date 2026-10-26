@@ -356,6 +356,58 @@ export async function registrarVenda(venda, { clienteNovo = null, lancamentos = 
   return salvar;
 }
 
+// Edita uma venda já feita: mantém número, dia e hora; acerta o estoque pela diferença
+// e troca o fiado (os lançamentos antigos ficam cancelados no histórico do cliente).
+export async function editarVenda(id, nova, { clienteNovo = null, lancamentos = [], baixarEstoque = true } = {}) {
+  const db = await abrir();
+  const tx = escrever(db, ['vendas', 'produtos', 'movimentos', 'clientes', 'lancamentos']);
+  const vendas = tx.objectStore('vendas');
+  const antiga = await pedido(vendas.get(id));
+  if (!antiga || antiga.cancelada) { tx.abort(); return null; }
+  const dataHora = agora();
+  const motivo = `Venda nº ${antiga.numero} editada`;
+
+  // Estoque: devolve o que a versão antiga tirou e tira o da nova (só a diferença de cada produto).
+  const diferenca = new Map();
+  const somar = (produtoId, q) => diferenca.set(produtoId, (diferenca.get(produtoId) || 0) + q);
+  if (!antiga.semEstoque) antiga.itens.forEach((i) => somar(i.produtoId, i.quantidade));
+  if (baixarEstoque) nova.itens.forEach((i) => somar(i.produtoId, -i.quantidade));
+  const produtos = tx.objectStore('produtos');
+  for (const [produtoId, d] of diferenca) {
+    if (!d) continue;
+    const p = await pedido(produtos.get(produtoId));
+    if (!p) continue;
+    const q = p.quantidade == null ? null : Math.max(0, p.quantidade + d);
+    tx.objectStore('movimentos').put({
+      id: novoId(), produtoId: p.id, produtoNome: p.nome, tipo: d > 0 ? 'devolucao' : 'venda', motivo,
+      quantidadeAntes: p.quantidade, quantidadeDepois: q, diferenca: d, dataHora, vendaId: id,
+    });
+    produtos.put({ ...p, quantidade: q, atualizadoEm: dataHora });
+  }
+
+  const lancs = tx.objectStore('lancamentos');
+  for (const lid of antiga.lancamentoIds || []) {
+    const l = await pedido(lancs.get(lid));
+    if (l && !l.cancelado) lancs.put({ ...l, cancelado: { em: dataHora, motivo } });
+  }
+  if (clienteNovo) tx.objectStore('clientes').put({ ...clienteNovo, criadoEm: dataHora, atualizadoEm: dataHora });
+  const lancamentoIds = [];
+  for (const l of lancamentos) {
+    const lid = novoId();
+    lancamentoIds.push(lid);
+    lancs.put({ ...l, id: lid, vendaId: id, registradoEm: dataHora, cancelado: null });
+  }
+
+  const salvar = {
+    ...nova, id, numero: antiga.numero, dia: antiga.dia, dataHora: antiga.dataHora, cancelada: null, lancamentoIds,
+    editadaEm: dataHora, edicoes: [...(antiga.edicoes || []), { em: dataHora, totalAntes: antiga.total }],
+    ...(baixarEstoque ? {} : { semEstoque: true }),
+  };
+  vendas.put(salvar);
+  await concluir(tx);
+  return salvar;
+}
+
 // Cancela a venda: devolve os produtos ao estoque e cancela o fiado dela. Nada é apagado.
 export async function cancelarVenda(id, motivo) {
   const db = await abrir();
