@@ -1,5 +1,6 @@
-// Lembrete de cobrança: mensagem pronta para o WhatsApp e evento no Google Agenda
-// (o app do Google Agenda avisa na hora marcada, mesmo com o sistema fechado).
+// Cobrança: mensagem pronta para o WhatsApp, dia marcado para cobrar (cliente.lembrete)
+// e histórico das cobranças feitas (cliente.cobrancas). Tudo fica dentro do sistema.
+// O link do Google Agenda continua para as tarefas.
 
 import { linkWhatsApp } from './fiado.js';
 import { lerPreferencia } from './comum.js';
@@ -13,6 +14,23 @@ const primeiroNome = (nome) => String(nome || '').trim().split(/\s+/)[0] || '';
 export const textoCobranca = () => lerPreferencia('textoCobranca') || TEXTO_PADRAO;
 // Cobra o que já venceu; se nada venceu ainda, o saldo todo.
 export const valorCobrar = (s) => s.vencido || s.saldo;
+
+// Registra que cobrou agora (data, hora e valor) e marca o próximo dia, ou desmarca (proxima vazia).
+export function comCobrancaFeita(cliente, valorCentavos, proxima) {
+  const { lembrete: _antigo, ...resto } = cliente;
+  const cobrancas = [...(cliente.cobrancas || []), { em: new Date().toISOString(), valor: valorCentavos }];
+  return proxima ? { ...resto, cobrancas, lembrete: { data: proxima, criadoEm: new Date().toISOString() } } : { ...resto, cobrancas };
+}
+
+// "cobrado 2x · última há 3 dias"
+export function resumoCobrancas(cliente, hoje = new Date()) {
+  const lista = cliente.cobrancas || [];
+  if (!lista.length) return '';
+  const ultima = new Date(lista[lista.length - 1].em);
+  const dias = Math.round((new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()) - new Date(ultima.getFullYear(), ultima.getMonth(), ultima.getDate())) / 864e5);
+  const quando = dias <= 0 ? 'hoje' : dias === 1 ? 'ontem' : `há ${dias} dias`;
+  return `cobrado ${lista.length}x · última ${quando}`;
+}
 
 export function mensagemCobranca(texto, cliente, valorCentavos) {
   return (texto || TEXTO_PADRAO)
