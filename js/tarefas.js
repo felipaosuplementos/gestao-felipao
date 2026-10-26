@@ -10,7 +10,12 @@ import {
   textoCobranca, valorCobrar, mensagemCobranca, linkCobranca, linkGoogleAgenda, dataAtalho, comCobrancaFeita,
 } from './lembrete.js';
 
-const DIAS_FEITAS = 7; // feitas que continuam aparecendo na tela (o resto fica no backup)
+const DIAS_FEITAS = 7;
+const horaCurta = (iso) => {
+  const d = new Date(iso);
+  const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return hojeISO(d) === hojeISO() ? `às ${hora}` : `em ${dataCurta(hojeISO(d))}`;
+}; // feitas que continuam aparecendo na tela (o resto fica no backup)
 
 const estado = {
   tarefas: [],
@@ -57,12 +62,18 @@ function linhaTarefa(t, grupo) {
   if (grupo === 'atrasadas' || grupo === 'depois') partes.push(grupo === 'atrasadas' ? `era para ${dataCurta(t.data)}` : dataCurta(t.data));
   if (t.hora) partes.push(`🕐 ${t.hora}`);
   if (t.avisoGoogle) partes.push('⏰ no Google Agenda');
+  const conferida = t.conferida ? `<span class="tarefa-conferida">✔ conferido ${horaCurta(t.conferida.em)}</span>` : '';
   return `
-    <li class="tarefa">
+    <li class="tarefa ${t.conferida ? 'tarefa-ok' : ''}">
       <button class="tarefa-check" data-feita="${t.id}" aria-label="Marcar como feita"></button>
       <button class="tarefa-texto" data-editar="${t.id}">
         <span class="tarefa-nome">${esc(t.texto)}</span>
         ${partes.length ? `<span class="item-sub">${esc(partes.join(' · '))}</span>` : ''}
+        ${conferida}
+      </button>
+      <button class="btn-conferir ${t.conferida ? 'ligado' : ''}" data-conferir="${t.id}"
+        aria-label="${t.conferida ? 'Desmarcar conferido' : 'Marcar como conferido'}" aria-pressed="${!!t.conferida}">
+        <span class="conferir-marca">✔</span><small>${t.conferida ? 'Conferido' : 'Conferir'}</small>
       </button>
     </li>`;
 }
@@ -180,9 +191,18 @@ $('#form-nova-tarefa').addEventListener('submit', async (e) => {
 const tarefaDo = (id) => estado.tarefas.find((t) => t.id === id);
 
 $('#lista-tarefas').addEventListener('click', async (e) => {
-  const alvo = e.target.closest('[data-feita],[data-desfazer],[data-editar],[data-cobrei],[data-cliente]');
+  const alvo = e.target.closest('[data-feita],[data-desfazer],[data-editar],[data-cobrei],[data-cliente],[data-conferir]');
   if (!alvo) return;
-  const { feita, desfazer, editar, cobrei, cliente } = alvo.dataset;
+  const { feita, desfazer, editar, cobrei, cliente, conferir } = alvo.dataset;
+
+  // Conferido: uma marca separada (ex.: pedido separado e conferido), a tarefa continua na lista.
+  if (conferir) {
+    const t = tarefaDo(conferir);
+    alvo.classList.toggle('ligado', !t.conferida);
+    await db.salvarTarefas([{ ...t, conferida: t.conferida ? null : { em: new Date().toISOString() } }]);
+    avisar(t.conferida ? 'Conferido desmarcado' : 'Conferido ✔');
+    await carregar();
+  }
 
   if (feita || desfazer) {
     const t = tarefaDo(feita || desfazer);
@@ -296,10 +316,10 @@ $('#form-colar-tarefas').addEventListener('submit', async (e) => {
 // ---------- Backup ----------
 
 export function csvTarefas(tarefas) {
-  const cab = ['situacao', 'dia', 'hora', 'tarefa', 'anotada_em', 'feita_em'];
+  const cab = ['situacao', 'dia', 'hora', 'tarefa', 'anotada_em', 'conferida_em', 'feita_em'];
   const ordem = [...tarefas].sort((a, b) => (!!a.feita - !!b.feita) || chaveOrdem(a.data, a.hora, a.criadaEm).localeCompare(chaveOrdem(b.data, b.hora, b.criadaEm)));
   const br = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR') : '');
-  return gerarCsv(cab, ordem.map((t) => [t.feita ? 'Feita' : 'A fazer', dataCurta(t.data), t.hora, t.texto, br(t.criadaEm), br(t.feita?.em)]));
+  return gerarCsv(cab, ordem.map((t) => [t.feita ? 'Feita' : 'A fazer', dataCurta(t.data), t.hora, t.texto, br(t.criadaEm), br(t.conferida?.em), br(t.feita?.em)]));
 }
 
 $('#menu-exportar-tarefas').addEventListener('click', async () => {
