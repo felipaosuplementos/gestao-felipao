@@ -91,35 +91,69 @@ const venda = {
   forma: 'pix',
   freteQuem: 'cliente', // quem paga o frete: 'cliente' (soma no total) ou 'eu' (sai do lucro)
   editando: null, // venda já feita que está sendo editada
+  pronto: false, // produtos e clientes já carregados
 };
+
+// Produtos, clientes e últimas vendas ficam guardados na memória: a Nova venda abre na hora.
+// Recarrega quando algo muda (venda feita, dados da nuvem, cadastro).
+let base = null;
+function carregarBase() {
+  if (base) return base;
+  base = Promise.all([db.listarProdutos(), db.listarClientes(), db.listarLancamentos(), db.listarVendas()])
+    .then(([produtos, clientes, lancamentos, vendas]) => {
+      const porCliente = new Map();
+      for (const l of lancamentos) (porCliente.get(l.clienteId) || porCliente.set(l.clienteId, []).get(l.clienteId)).push(l);
+      const hoje = hojeISO();
+      return {
+        produtos: produtos.filter((p) => !p.arquivado).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
+        // A situação do fiado só é calculada para o cliente escolhido (quando precisa).
+        clientes: clientes.filter((c) => !c.arquivado).map((c) => ({
+          cliente: c,
+          get situacao() { return this.s || (this.s = situacaoCliente(porCliente.get(c.id) || [], hoje)); },
+        })),
+        ultimos: ultimosValores(vendas),
+      };
+    })
+    .catch((erro) => { base = null; throw erro; });
+  return base;
+}
+const esquecerBase = () => { base = null; };
+// Mudou produto, cliente, fiado ou venda (nesta tela ou em outra): a próxima Nova venda lê de novo.
+db.aoMudar((mudancas) => {
+  if (mudancas.some((m) => ['produtos', 'clientes', 'lancamentos', 'vendas'].includes(m.loja))) esquecerBase();
+});
 
 // produtoId: já começa com esse produto. existente: abre uma venda feita para editar.
 async function abrirNovaVenda(produtoId = null, existente = null) {
-  const [produtos, clientes, lancamentos, vendas] = await Promise.all([db.listarProdutos(), db.listarClientes(), db.listarLancamentos(), db.listarVendas()]);
-  venda.ultimos = ultimosValores(vendas);
-  venda.produtos = produtos.filter((p) => !p.arquivado).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-  const hoje = hojeISO();
-  venda.clientes = clientes.filter((c) => !c.arquivado).map((c) => ({
-    cliente: c, situacao: situacaoCliente(lancamentos.filter((l) => l.clienteId === c.id), hoje),
-  }));
+  // Abre a janela primeiro (sem esperar os dados) para responder ao toque na hora.
   venda.carrinho = [];
   venda.forma = 'pix';
   venda.freteQuem = 'cliente';
   venda.editando = existente;
   const form = $('#form-venda');
   form.reset();
-  form.vencimento.value = somarMeses(hoje, 1);
+  form.vencimento.value = somarMeses(hojeISO(), 1);
   $('#venda-formas').innerHTML = FORMAS_PAGAMENTO.map((f) => `<button type="button" class="chip" data-forma="${f.id}">${f.nome}</button>`).join('');
-  $('#venda-lista-clientes').innerHTML = venda.clientes
-    .map((c) => `<option value="${esc(c.cliente.nome)}">`).join('');
   $('#venda-resultados').innerHTML = '';
   $('#venda-titulo').textContent = existente ? `Editar venda nº ${existente.numero}` : 'Nova venda';
+  renderCarrinho();
+  atualizarVenda();
+  $('#dlg-venda').showModal();
+  if (!produtoId && !existente) form.nome.focus();
+
+  venda.pronto = false;
+  const dados = await carregarBase();
+  venda.pronto = true;
+  venda.produtos = dados.produtos;
+  venda.clientes = dados.clientes;
+  venda.ultimos = dados.ultimos;
+  $('#venda-lista-clientes').innerHTML = venda.clientes.map((c) => `<option value="${esc(c.cliente.nome)}">`).join('');
   if (existente) await preencherVenda(existente);
   renderCarrinho();
   if (produtoId) adicionarProduto(produtoId);
   atualizarVenda();
-  $('#dlg-venda').showModal();
-  if (!produtoId && !existente) form.nome.focus();
+  // Se já digitou algo na busca enquanto carregava, mostra o resultado.
+  if ($('#venda-busca').value.trim()) mostrarResultados();
 }
 
 // Coloca no formulário tudo o que a venda tinha (para corrigir o que estiver errado).
@@ -165,6 +199,7 @@ function sugestaoPara(p) {
 async function mostrarResultados() {
   const termos = semAcento($('#venda-busca').value).split(/\s+/).filter(Boolean);
   if (!termos.length) { $('#venda-resultados').innerHTML = ''; return; }
+  if (!venda.pronto) { $('#venda-resultados').innerHTML = '<li class="descricao">Carregando os produtos…</li>'; return; }
   const achados = venda.produtos.filter((p) => {
     const texto = semAcento([p.nome, p.marca, p.variacao, p.tamanho, p.codigo].join(' '));
     return termos.every((t) => texto.includes(t));
@@ -458,6 +493,7 @@ $('#form-venda').addEventListener('submit', async (e) => {
   try {
     const opcoes = { ...extras, baixarEstoque: controlaEstoque() };
     const salva = editando ? await db.editarVenda(editando.id, registro, opcoes) : await db.registrarVenda(registro, opcoes);
+    esquecerBase(); // a última venda e o fiado mudaram
     if (!salva) { avisar('Essa venda não pode mais ser editada'); return; }
     $('#dlg-venda').close();
     avisar(editando ? `Venda nº ${salva.numero} corrigida: ${moedaCentavos(salva.total)}`
@@ -558,8 +594,9 @@ $('#vendas-dia').addEventListener('change', (e) => {
 $('#dia-anterior').addEventListener('click', () => mudarDia(-1));
 $('#dia-seguinte').addEventListener('click', () => mudarDia(1));
 
-document.addEventListener('tela-aberta', (e) => { if (e.detail === 'vendas') carregar(); });
-document.addEventListener('dados-mudaram', () => { fotos.clear(); carregar(); });
+// Ao abrir a tela Vender, já deixa os dados da Nova venda prontos.
+document.addEventListener('tela-aberta', (e) => { if (e.detail === 'vendas') { carregar(); carregarBase(); } });
+document.addEventListener('dados-mudaram', () => { fotos.clear(); esquecerBase(); carregar(); });
 // Botão "Vender" na ficha do produto.
 document.addEventListener('vender-produto', async (e) => {
   document.dispatchEvent(new CustomEvent('mostrar-tela', { detail: 'vendas' }));
@@ -567,3 +604,5 @@ document.addEventListener('vender-produto', async (e) => {
 });
 
 carregar();
+// Deixa a Nova venda pronta assim que o sistema abre.
+setTimeout(() => carregarBase().catch(() => {}), 1500);
