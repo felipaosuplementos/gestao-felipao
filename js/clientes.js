@@ -310,7 +310,7 @@ function abrirCliente(id) {
         <div>${esc(descricaoLancamento(l))}
           <small>${dataCurta(l.data)}${l.dataAproximada ? ' (data aproximada)' : ''}${l.parcela ? ` · parcela ${esc(l.parcela)} · vence ${dataCurta(l.vencimento)}` : l.vencimento ? ` · vence ${dataCurta(l.vencimento)}` : ''} · registrado em ${dataHora(l.registradoEm)}</small>
           ${l.cancelado ? `<small class="erros">Cancelado em ${dataHora(l.cancelado.em)}${l.cancelado.motivo ? ` — ${esc(l.cancelado.motivo)}` : ''}</small>`
-            : l.vendaId ? '<small>Veio de uma venda: para desfazer, cancele a venda na tela Vender.</small>'
+            : l.vendaId ? '<small>Veio de uma venda: para corrigir, edite ou cancele a venda na tela Vender.</small>'
               : `<button class="btn-texto btn-cancelar" data-cancelar="${l.id}">cancelar lançamento</button>`}
         </div>
         <span class="dif ${l.tipo === 'fiado' ? 'menos' : 'mais'}">${l.tipo === 'fiado' ? '+' : '−'}${moedaCentavos(l.valor)}</span>
