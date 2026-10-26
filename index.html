@@ -492,16 +492,25 @@
   <dialog id="dlg-venda" class="folha folha-alta">
     <form id="form-venda" method="dialog" novalidate>
       <div class="folha-topo">
-        <h2>Nova venda</h2>
+        <h2 id="venda-titulo">Nova venda</h2>
         <button type="button" class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
       </div>
+      <label>Nome (cliente ou venda)<input name="nome" list="venda-lista-clientes" placeholder="Ex.: Maria ou Pedido do Instagram" autocomplete="off"></label>
       <input id="venda-busca" type="search" placeholder="🔍 Buscar produto para adicionar…" autocomplete="off">
       <ul id="venda-resultados" class="resultados"></ul>
       <ul id="venda-carrinho" class="carrinho"></ul>
       <p id="venda-carrinho-vazio" class="descricao">Busque e toque nos produtos para adicionar.</p>
 
       <div id="venda-pagamento" hidden>
-        <label>Desconto (R$)<input name="desconto" inputmode="decimal" placeholder="0,00" autocomplete="off"></label>
+        <div class="duas">
+          <label>Desconto (R$)<input name="desconto" inputmode="decimal" placeholder="0,00" autocomplete="off"></label>
+          <label>Frete (R$)<input name="frete" inputmode="decimal" placeholder="0,00" autocomplete="off"></label>
+        </div>
+        <div id="venda-frete-quem" class="chips chips-motivo" hidden>
+          <button type="button" class="chip" data-frete="cliente" aria-pressed="true">Cliente paga o frete</button>
+          <button type="button" class="chip" data-frete="eu" aria-pressed="false">Eu pago o frete</button>
+        </div>
+        <p id="venda-frete-info" class="descricao" hidden></p>
         <p class="rotulo-campo">Forma de pagamento</p>
         <div id="venda-formas" class="chips chips-motivo chips-grandes"></div>
         <div id="venda-credito" hidden>

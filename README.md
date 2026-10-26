@@ -27,6 +27,9 @@ Sistema de gestão da Felipão Suplementos
 - **Nova venda**: busca o produto (com foto), ajusta a quantidade e digita o **custo** e o **preço de venda** de cada produto, com o lucro do item na hora. Nada fica fixo no produto: o sistema só sugere os valores da última venda dele (botão "usar").
 - Pagamento por **Pix, dinheiro (com troco), débito, crédito (até 12x), link de pagamento ou fiado**. No fiado, escolhe um cliente da lista ou digita um novo, à vista ou parcelado.
 - Ao finalizar, a venda fica registrada com data, hora e lucro (preço − custo); com o controle de estoque ligado, **o estoque baixa sozinho**. No fiado, a dívida entra na ficha do cliente.
+- **Nome da venda** (cliente ou pedido) no alto da Nova venda; é o nome que aparece na lista. No fiado, vira o cliente.
+- **Frete**: valor e quem paga — **cliente paga** (soma no total) ou **eu pago** (sai do lucro).
+- **Editar venda**: corrige produtos, valores, frete, pagamento e fiado. Mantém número, dia e hora e registra quando foi editada; o fiado antigo fica cancelado no histórico do cliente.
 - **Cancelar venda**: devolve os produtos ao estoque e cancela o fiado dela. Nada é apagado.
 - Botão **🛒 Vender** na ficha do produto e **backup** em planilha de vendas.
 

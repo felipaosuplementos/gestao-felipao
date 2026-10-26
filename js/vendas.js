@@ -13,9 +13,12 @@ const estado = {
 };
 
 const hora = (iso) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+const dataHoraCurta = (iso) => `${dataCurta(hojeISO(new Date(iso)))} às ${hora(iso)}`;
 const reaisCampo = (centavos) => (centavos == null ? '' : (centavos / 100).toFixed(2).replace('.', ','));
 const detalheProduto = (p) => [p.marca, p.variacao, p.tamanho].filter(Boolean).join(' · ');
 const chaveNome = (nome) => semAcento(nome).replace(/\s+/g, ' ').trim();
+// Nome que aparece na lista: o digitado na venda, o cliente do fiado ou o número.
+const nomeVenda = (v) => v.nome || v.clienteNome || `Venda nº ${v.numero}`;
 const resumoItens = (itens) => itens.map((i) => `${i.quantidade}x ${i.nome}${i.variacao ? ` ${i.variacao}` : ''}`).join(', ');
 
 // ---------- Fotos (foto tirada pelo Felipão ou a do catálogo) ----------
@@ -62,8 +65,8 @@ function render() {
     <li><button class="item ${v.cancelada ? 'item-cancelado' : ''}" data-venda="${v.id}">
       <div class="miniatura avatar">🛒</div>
       <div class="item-info">
-        <div class="item-nome">Nº ${v.numero} · ${hora(v.dataHora)} · ${esc(nomeForma(v.forma))}</div>
-        <div class="item-sub item-sub-quebra">${v.cancelada ? 'CANCELADA · ' : ''}${v.clienteNome ? `<strong>${esc(v.clienteNome)}</strong> · ` : ''}${esc(resumoItens(v.itens))}</div>
+        <div class="item-nome">${esc(nomeVenda(v))}</div>
+        <div class="item-sub item-sub-quebra">${v.cancelada ? 'CANCELADA · ' : ''}Nº ${v.numero} · ${hora(v.dataHora)} · ${esc(nomeForma(v.forma))} · ${esc(resumoItens(v.itens))}</div>
       </div>
       <div class="saldo ${v.cancelada ? 'quitado' : 'a-vencer'}">${moedaCentavos(v.total)}</div>
     </button></li>`).join('');
@@ -86,9 +89,12 @@ const venda = {
   carrinho: [], // { produtoId, codigo, nome, variacao, detalhe, quantidade, precoUnit, custoUnit, estoque, sugestao }
   ultimos: new Map(), // produtoId -> custo e preço da última venda dele (para sugerir)
   forma: 'pix',
+  freteQuem: 'cliente', // quem paga o frete: 'cliente' (soma no total) ou 'eu' (sai do lucro)
+  editando: null, // venda já feita que está sendo editada
 };
 
-async function abrirNovaVenda(produtoId = null) {
+// produtoId: já começa com esse produto. existente: abre uma venda feita para editar.
+async function abrirNovaVenda(produtoId = null, existente = null) {
   const [produtos, clientes, lancamentos, vendas] = await Promise.all([db.listarProdutos(), db.listarClientes(), db.listarLancamentos(), db.listarVendas()]);
   venda.ultimos = ultimosValores(vendas);
   venda.produtos = produtos.filter((p) => !p.arquivado).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
@@ -98,6 +104,8 @@ async function abrirNovaVenda(produtoId = null) {
   }));
   venda.carrinho = [];
   venda.forma = 'pix';
+  venda.freteQuem = 'cliente';
+  venda.editando = existente;
   const form = $('#form-venda');
   form.reset();
   form.vencimento.value = somarMeses(hoje, 1);
@@ -105,10 +113,36 @@ async function abrirNovaVenda(produtoId = null) {
   $('#venda-lista-clientes').innerHTML = venda.clientes
     .map((c) => `<option value="${esc(c.cliente.nome)}">`).join('');
   $('#venda-resultados').innerHTML = '';
+  $('#venda-titulo').textContent = existente ? `Editar venda nº ${existente.numero}` : 'Nova venda';
+  if (existente) await preencherVenda(existente);
+  renderCarrinho();
   if (produtoId) adicionarProduto(produtoId);
   atualizarVenda();
   $('#dlg-venda').showModal();
-  if (!produtoId) $('#venda-busca').focus();
+  if (!produtoId && !existente) form.nome.focus();
+}
+
+// Coloca no formulário tudo o que a venda tinha (para corrigir o que estiver errado).
+async function preencherVenda(v) {
+  const form = $('#form-venda');
+  venda.forma = v.forma;
+  venda.freteQuem = v.fretePagoPor || 'cliente';
+  form.nome.value = v.nome || '';
+  form.desconto.value = v.desconto ? reaisCampo(v.desconto) : '';
+  form.frete.value = v.frete ? reaisCampo(v.frete) : '';
+  form.observacao.value = v.observacao || '';
+  if (v.parcelasCartao) form.parcelasCartao.value = String(v.parcelasCartao);
+  if (v.recebido != null) form.recebido.value = reaisCampo(v.recebido);
+  if (v.forma === 'fiado') {
+    form.cliente.value = v.clienteNome || '';
+    form.parcelasFiado.value = String(v.parcelasFiado || 1);
+    const lancs = (await db.listarLancamentos(v.clienteId)).filter((l) => l.vendaId === v.id && !l.cancelado && l.vencimento);
+    if (lancs.length) form.vencimento.value = lancs.map((l) => l.vencimento).sort()[0];
+  }
+  venda.carrinho = v.itens.map((i) => {
+    const p = venda.produtos.find((x) => x.id === i.produtoId);
+    return { ...i, detalhe: p ? detalheProduto(p) : '', estoque: p?.quantidade ?? null, sugestao: null };
+  });
 }
 
 // Custo e preço usados na última venda de cada produto (as canceladas não contam).
@@ -236,12 +270,15 @@ function infoItem(i) {
 function dadosVenda() {
   const form = $('#form-venda');
   const desconto = paraCentavos(lerNumero(form.desconto.value) || 0);
+  const frete = paraCentavos(lerNumero(form.frete.value) || 0);
   const itens = venda.carrinho.map((i) => ({ ...i, precoUnit: i.precoUnit ?? 0 }));
-  return { itens, ...calcularVenda(itens, desconto) };
+  return { itens, ...calcularVenda(itens, desconto, frete, venda.freteQuem) };
 }
 
 function clienteDigitado() {
-  const nome = $('#form-venda').cliente.value.trim().replace(/\s+/g, ' ');
+  const form = $('#form-venda');
+  // No fiado, se o campo Cliente ficar vazio, vale o nome digitado no alto da venda.
+  const nome = (form.cliente.value.trim() || form.nome.value.trim()).replace(/\s+/g, ' ');
   if (!nome) return { nome: '', existente: null };
   return { nome, existente: venda.clientes.find((c) => chaveNome(c.cliente.nome) === chaveNome(nome)) || null };
 }
@@ -257,7 +294,16 @@ function atualizarVenda() {
   $('#venda-fiado').hidden = venda.forma !== 'fiado';
 
   const r = dadosVenda();
-  $('#venda-subtotal').textContent = r.desconto ? `Subtotal ${moedaCentavos(r.subtotal)} − desconto ${moedaCentavos(r.desconto)}` : `${venda.carrinho.reduce((s, i) => s + i.quantidade, 0)} itens`;
+  const partes = [];
+  if (r.desconto) partes.push(`desconto ${moedaCentavos(r.desconto)}`);
+  if (r.frete && venda.freteQuem === 'cliente') partes.push(`+ frete ${moedaCentavos(r.frete)}`);
+  $('#venda-subtotal').textContent = partes.length ? `Produtos ${moedaCentavos(r.subtotal)} · ${partes.join(' · ')}` : `${venda.carrinho.reduce((s, i) => s + i.quantidade, 0)} itens`;
+  $('#venda-frete-quem').hidden = !r.frete;
+  $('#venda-frete-quem').querySelectorAll('[data-frete]').forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.frete === venda.freteQuem)));
+  $('#venda-frete-info').hidden = !r.frete;
+  $('#venda-frete-info').textContent = venda.freteQuem === 'cliente'
+    ? `O cliente paga ${moedaCentavos(r.frete)} de frete junto com a venda.`
+    : `Você paga ${moedaCentavos(r.frete)} de frete: sai do lucro, o cliente não paga.`;
   $('#venda-total').textContent = moedaCentavos(r.total);
   $('#venda-lucro').textContent = r.lucro == null ? (temItens ? 'Lucro: coloque o custo para calcular' : '')
     : `Lucro estimado: ${moedaCentavos(r.lucro)}${r.itensSemCusto ? ` (${r.itensSemCusto} sem custo)` : ''}`;
@@ -281,7 +327,8 @@ function atualizarVenda() {
       : '';
   }
   $('#venda-finalizar').disabled = !temItens;
-  $('#venda-finalizar').textContent = temItens ? `Finalizar ${moedaCentavos(r.total)}` : 'Finalizar venda';
+  $('#venda-finalizar').textContent = !temItens ? 'Finalizar venda'
+    : venda.editando ? `Salvar ${moedaCentavos(r.total)}` : `Finalizar ${moedaCentavos(r.total)}`;
 }
 
 $('#venda-busca').addEventListener('input', mostrarResultados);
@@ -334,12 +381,20 @@ $('#venda-carrinho').addEventListener('input', (e) => {
   li.querySelector('.carrinho-info').innerHTML = infoItem(item);
   atualizarVenda();
 });
+$('#venda-frete-quem').addEventListener('click', (e) => {
+  const chip = e.target.closest('[data-frete]');
+  if (!chip) return;
+  venda.freteQuem = chip.dataset.frete;
+  atualizarVenda();
+});
 $('#venda-formas').addEventListener('click', (e) => {
   const chip = e.target.closest('[data-forma]');
   if (!chip) return;
   venda.forma = chip.dataset.forma;
+  const form = $('#form-venda');
+  if (venda.forma === 'fiado' && !form.cliente.value.trim()) form.cliente.value = form.nome.value.trim();
   atualizarVenda();
-  if (venda.forma === 'fiado') $('#form-venda').cliente.focus();
+  if (venda.forma === 'fiado' && !form.cliente.value) form.cliente.focus();
   if (venda.forma === 'dinheiro') $('#form-venda').recebido.focus();
 });
 $('#form-venda').addEventListener('input', (e) => { if (!e.target.closest('#venda-carrinho, #venda-busca')) atualizarVenda(); });
@@ -353,12 +408,16 @@ $('#form-venda').addEventListener('submit', async (e) => {
   if (semPreco) { avisar(`Coloque o preço de ${semPreco.nome}`); $(`#venda-carrinho [data-preco="${semPreco.produtoId}"]`)?.focus(); return; }
   const r = dadosVenda();
   if (r.total <= 0) { avisar('O total da venda precisa ser maior que zero'); return; }
-  const hoje = hojeISO();
+  const editando = venda.editando;
+  // Na edição a venda continua no dia em que foi feita.
+  const hoje = editando ? editando.dia : hojeISO();
 
   const registro = {
     dia: hoje,
+    nome: form.nome.value.trim().replace(/\s+/g, ' '),
     itens: r.itens.map(({ estoque, detalhe, sugestao, ...i }) => i),
     subtotal: r.subtotal, desconto: r.desconto, total: r.total, lucro: r.lucro, itensSemCusto: r.itensSemCusto,
+    frete: r.frete, fretePagoPor: r.frete ? venda.freteQuem : null,
     forma: venda.forma, observacao: form.observacao.value.trim(),
   };
   const extras = {};
@@ -397,16 +456,21 @@ $('#form-venda').addEventListener('submit', async (e) => {
 
   $('#venda-finalizar').disabled = true;
   try {
-    const salva = await db.registrarVenda(registro, { ...extras, baixarEstoque: controlaEstoque() });
+    const opcoes = { ...extras, baixarEstoque: controlaEstoque() };
+    const salva = editando ? await db.editarVenda(editando.id, registro, opcoes) : await db.registrarVenda(registro, opcoes);
+    if (!salva) { avisar('Essa venda não pode mais ser editada'); return; }
     $('#dlg-venda').close();
-    avisar(`Venda nº ${salva.numero} registrada: ${moedaCentavos(salva.total)}${salva.troco ? ` · troco ${moedaCentavos(salva.troco)}` : ''}`);
+    avisar(editando ? `Venda nº ${salva.numero} corrigida: ${moedaCentavos(salva.total)}`
+      : `Venda nº ${salva.numero} registrada: ${moedaCentavos(salva.total)}${salva.troco ? ` · troco ${moedaCentavos(salva.troco)}` : ''}`);
     estado.dia = hoje;
     await carregar();
+    if (editando) abrirDetalhe(salva.id);
     document.dispatchEvent(new CustomEvent('dados-mudaram'));
   } catch (erro) {
     avisar('Não consegui salvar a venda. Tente de novo.');
-    $('#venda-finalizar').disabled = false;
     throw erro;
+  } finally {
+    $('#venda-finalizar').disabled = false;
   }
 });
 
@@ -418,18 +482,22 @@ function abrirDetalhe(id) {
   const v = estado.vendas.find((x) => x.id === id);
   if (!v) return;
   vendaAberta = v;
-  $('#venda-detalhe-titulo').textContent = `Venda nº ${v.numero}`;
+  $('#venda-detalhe-titulo').textContent = nomeVenda(v);
   const pagamento = [nomeForma(v.forma)];
   if (v.parcelasCartao > 1) pagamento.push(`${v.parcelasCartao}x no cartão`);
   if (v.recebido != null) pagamento.push(`recebido ${moedaCentavos(v.recebido)}, troco ${moedaCentavos(v.troco)}`);
   if (v.clienteNome) pagamento.push(`cliente ${v.clienteNome}`);
   if (v.parcelasFiado > 1) pagamento.push(`${v.parcelasFiado} parcelas`);
   $('#venda-detalhe').innerHTML = `
-    <p class="detalhe-sub">${dataCurta(v.dia)} às ${hora(v.dataHora)}${v.cancelada ? ' <span class="etiqueta etiqueta-perigo">Cancelada</span>' : ''}</p>
+    <p class="detalhe-sub">Venda nº ${v.numero} · ${dataCurta(v.dia)} às ${hora(v.dataHora)}${v.cancelada ? ' <span class="etiqueta etiqueta-perigo">Cancelada</span>' : ''}
+      ${v.editadaEm ? `<br>Editada em ${dataHoraCurta(v.editadaEm)}` : ''}</p>
     <ul class="historico">${v.itens.map((i) => `
       <li><div>${i.quantidade}x ${esc(i.nome)}${i.variacao ? ` ${esc(i.variacao)}` : ''}<small>${moedaCentavos(i.precoUnit)} cada${i.custoUnit != null ? ` · custo ${moedaCentavos(i.custoUnit)}` : ''}</small></div>
       <span class="dif">${moedaCentavos(i.precoUnit * i.quantidade)}</span></li>`).join('')}
       ${v.desconto ? `<li><div>Desconto</div><span class="dif menos">−${moedaCentavos(v.desconto)}</span></li>` : ''}
+      ${v.frete ? (v.fretePagoPor === 'eu'
+    ? `<li><div>Frete<small>você pagou · sai do lucro, não entra no total</small></div><span class="dif">${moedaCentavos(v.frete)}</span></li>`
+    : `<li><div>Frete<small>cliente pagou</small></div><span class="dif">+${moedaCentavos(v.frete)}</span></li>`) : ''}
       <li><div><strong>Total</strong></div><span class="dif"><strong>${moedaCentavos(v.total)}</strong></span></li>
     </ul>
     <p><strong>Pagamento:</strong> ${esc(pagamento.join(' · '))}</p>
@@ -437,13 +505,19 @@ function abrirDetalhe(id) {
     ${v.observacao ? `<p class="descricao">${esc(v.observacao)}</p>` : ''}
     ${v.cancelada
     ? `<p class="erros">Cancelada em ${dataCurta(v.cancelada.em.slice(0, 10))}${v.cancelada.motivo ? ` — ${esc(v.cancelada.motivo)}` : ''}. ${v.semEstoque ? (v.forma === 'fiado' ? 'O fiado foi cancelado.' : '') : `Os produtos voltaram ao estoque${v.forma === 'fiado' ? ' e o fiado foi cancelado' : ''}.`}</p>`
-    : '<button class="btn btn-perigo-claro btn-largo" id="btn-cancelar-venda">Cancelar esta venda</button>'}
+    : `<button class="btn btn-primario btn-largo" id="btn-editar-venda">✏️ Editar venda</button>
+      <button class="btn btn-perigo-claro btn-largo" id="btn-cancelar-venda">Cancelar esta venda</button>`}
   `;
   const dlg = $('#dlg-venda-detalhe');
   if (!dlg.open) dlg.showModal();
 }
 
 $('#venda-detalhe').addEventListener('click', async (e) => {
+  if (e.target.closest('#btn-editar-venda')) {
+    $('#dlg-venda-detalhe').close();
+    await abrirNovaVenda(null, vendaAberta);
+    return;
+  }
   if (!e.target.closest('#btn-cancelar-venda')) return;
   const v = vendaAberta;
   const motivo = await confirmarComMotivo(
