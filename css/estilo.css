@@ -847,3 +847,4 @@ button.pc-hoje:active { background: var(--azul-escuro); }
 .menu-info-alerta { color: var(--laranja); font-weight: 600; }
 .aviso-topo { max-width: 688px; margin: 12px auto 0; }
 @media (max-width: 720px) { .aviso-topo { margin: 12px 16px 0; } }
+@media (min-width: 900px) { #tela-inicio .aviso-topo { max-width: 1072px; margin-top: 20px; } }
