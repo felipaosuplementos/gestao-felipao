@@ -495,7 +495,7 @@ dialog.folha-alta { max-height: 100vh; height: 100%; border-radius: 0; }
 .btn-largo { width: 100%; margin: 8px 0 16px; }
 
 /* Nuvem */
-.sync-status { display: inline-block; margin-left: 6px; font-size: 12px; opacity: .9; }
+.sync-status { display: inline-block; margin-left: 6px; font-size: 12px; opacity: .9; cursor: pointer; }
 .sync-status:empty { display: none; }
 .sync-status[data-situacao="erro"] { color: #ffd4d4; font-weight: 700; }
 body.com-nuvem #aviso-backup, body.com-nuvem #aviso-backup-clientes { display: none !important; }

@@ -1,7 +1,7 @@
 // Sincronização com a nuvem (Firebase).
 // Cada aparelho continua com o seu banco local (funciona sem internet). Tudo o que muda aqui
 // é enviado para a nuvem, e o que muda no outro aparelho chega e é gravado aqui.
-// Os dados ficam em usuarios/{conta}/{produtos|movimentos|fotos|clientes|lancamentos|vendas}.
+// Os dados ficam em usuarios/{conta}/{loja} (produtos, fotos, clientes, lançamentos, vendas, tarefas, pedidos…).
 
 import * as db from './db.js';
 import { $, avisar, confirmar, lerPreferencia, gravarPreferencia } from './comum.js';
@@ -31,13 +31,21 @@ const TEXTOS = {
   entrando: '☁️ Conectando…',
   ok: '☁️ Sincronizado',
   enviando: '⏳ Enviando para a nuvem…',
+  demorando: '⏳ Enviando… (já está salvo no aparelho)',
   offline: '📴 Sem internet: salvo no aparelho',
   erro: '⚠️ Erro na sincronização',
 };
 
+// Desde quando tem envio esperando a nuvem responder.
+let enviandoDesde = null;
+const DEMORA = 15000;
+
 function mostrarSituacao(situacao) {
   estado.situacao = situacao;
-  const texto = situacao === 'ok' && estado.pendentes ? TEXTOS.enviando : TEXTOS[situacao];
+  if (!estado.pendentes) enviandoDesde = null;
+  else if (!enviandoDesde) enviandoDesde = Date.now();
+  const demorando = enviandoDesde && Date.now() - enviandoDesde > DEMORA;
+  const texto = situacao === 'ok' && estado.pendentes ? TEXTOS[demorando ? 'demorando' : 'enviando'] : TEXTOS[situacao];
   document.querySelectorAll('.sync-status').forEach((el) => {
     el.textContent = texto;
     el.dataset.situacao = situacao;
@@ -47,8 +55,34 @@ function atualizarSituacao() {
   if (!estado.usuario) return;
   mostrarSituacao(navigator.onLine ? 'ok' : 'offline');
 }
-addEventListener('online', atualizarSituacao);
+addEventListener('online', () => { atualizarSituacao(); reconectar(); });
 addEventListener('offline', atualizarSituacao);
+
+// No iPhone, quando o app fica em segundo plano, a ligação com a nuvem "dorme" e os envios
+// ficam esperando até ela acordar sozinha (pode levar um tempo). Ao voltar para o app,
+// ou se um envio demorar, a ligação é refeita na hora. Nada se perde: o que está esperando
+// continua guardado e vai assim que a ligação volta.
+let ultimaReconexao = 0;
+async function reconectar() {
+  if (!estado.usuario || !navigator.onLine || Date.now() - ultimaReconexao < 5000) return;
+  ultimaReconexao = Date.now();
+  try {
+    await estado.fb.disableNetwork(estado.fs);
+    await estado.fb.enableNetwork(estado.fs);
+  } catch (e) {
+    console.error(e);
+  }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) reconectar(); });
+addEventListener('pageshow', () => reconectar());
+// Envio demorando: atualiza o aviso e tenta refazer a ligação (no máximo a cada 30 segundos).
+setInterval(() => {
+  if (!estado.pendentes) return;
+  atualizarSituacao();
+  if (Date.now() - enviandoDesde > DEMORA && Date.now() - ultimaReconexao > 30000) reconectar();
+}, 5000);
+// Tocar no aviso do topo também refaz a ligação.
+document.addEventListener('click', (e) => { if (e.target.closest('.sync-status')) { ultimaReconexao = 0; reconectar(); } });
 
 // ---------- Conversões ----------
 
