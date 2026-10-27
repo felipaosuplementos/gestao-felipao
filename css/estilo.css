@@ -628,7 +628,6 @@ body.com-nuvem #aviso-backup, body.com-nuvem #aviso-backup-clientes { display: n
 .tarefa-cobranca { border-color: #f6d9a8; background: #fffaf1; }
 .btn-cobrar { flex: none; min-height: 44px; min-width: 48px; padding: 0 10px; font-size: 20px; text-decoration: none; }
 .tarefa-feita .tarefa-nome { text-decoration: line-through; color: var(--texto-suave); }
-.tarefa-feita .tarefa-texto { cursor: default; }
 .tarefas-vazio { margin: 0 2px; color: var(--texto-suave); }
 .feitas { margin-top: 18px; }
 .feitas summary { cursor: pointer; padding: 10px 2px; color: var(--texto-suave); font-weight: 600; }
@@ -777,3 +776,7 @@ button.painel-card:active { background: var(--azul-claro); }
 .pedido-acoes { flex: none; display: flex; gap: 6px; }
 .pedido-acoes .btn { min-height: 44px; padding: 8px 12px; font-size: 15px; }
 .btn-icone-texto { min-width: 44px; color: var(--texto-suave); }
+
+/* Lápis: mostra que tocar no texto da tarefa abre a edição */
+.tarefa-lapis { font-size: 13px; opacity: .45; white-space: nowrap; }
+.tarefa-feita .tarefa-nome .tarefa-lapis { display: inline-block; text-decoration: none; }
