@@ -66,8 +66,8 @@ function linhaTarefa(t, grupo) {
   return `
     <li class="tarefa ${t.conferida ? 'tarefa-ok' : ''}">
       <button class="tarefa-check" data-feita="${t.id}" aria-label="Marcar como feita"></button>
-      <button class="tarefa-texto" data-editar="${t.id}">
-        <span class="tarefa-nome">${esc(t.texto)}</span>
+      <button class="tarefa-texto" data-editar="${t.id}" aria-label="Editar: ${esc(t.texto)}">
+        <span class="tarefa-nome">${esc(t.texto)} <span class="tarefa-lapis" aria-hidden="true">✏️</span></span>
         ${partes.length ? `<span class="item-sub">${esc(partes.join(' · '))}</span>` : ''}
         ${conferida}
       </button>
@@ -125,10 +125,10 @@ function render() {
         <ul class="lista lista-tarefas">${feitas.map((t) => `
           <li class="tarefa tarefa-feita">
             <button class="tarefa-check marcada" data-desfazer="${t.id}" aria-label="Desmarcar"></button>
-            <div class="tarefa-texto">
-              <span class="tarefa-nome">${esc(t.texto)}</span>
+            <button class="tarefa-texto" data-editar="${t.id}" aria-label="Editar: ${esc(t.texto)}">
+              <span class="tarefa-nome">${esc(t.texto)} <span class="tarefa-lapis" aria-hidden="true">✏️</span></span>
               <span class="item-sub">feita em ${dataHora(t.feita.em)}</span>
-            </div>
+            </button>
           </li>`).join('')}</ul>
       </details>`);
   }
