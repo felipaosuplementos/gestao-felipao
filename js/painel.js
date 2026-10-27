@@ -108,74 +108,96 @@ async function carregar() {
 
 function variacao() {
   const { mes, mesAnt, mesAntNome } = dados;
-  if (!mesAnt.total) return mes.total ? `Sem vendas no mesmo período de ${mesAntNome}` : '';
+  if (!mesAnt.total) return mes.total ? `<span class="pc-delta">Sem vendas no mesmo período de ${mesAntNome}</span>` : '';
   const pct = Math.round(((mes.total - mesAnt.total) / mesAnt.total) * 100);
-  if (pct === 0) return `Igual ao mesmo período de ${mesAntNome}`;
-  return `<span class="${pct > 0 ? 'sobe' : 'desce'}">${pct > 0 ? '▲' : '▼'} ${Math.abs(pct)}%</span> em relação ao mesmo período de ${mesAntNome}`;
+  if (pct === 0) return `<span class="pc-delta">= igual ao mesmo período de ${mesAntNome}</span>`;
+  return `<span class="pc-delta ${pct > 0 ? 'sobe' : 'desce'}">${pct > 0 ? '▲' : '▼'} ${Math.abs(pct)}%</span>
+    <span class="pc-delta-texto">em relação ao mesmo período de ${mesAntNome}</span>`;
 }
+
+// Cabeçalho de cada cartão: ícone, título e (se leva a outra tela) a setinha.
+const cabecalho = (icone, titulo, abre = true) => `
+  <span class="pc-cabeca"><span class="pc-icone" aria-hidden="true">${icone}</span>
+  <span class="pc-titulo">${titulo}</span>${abre ? '<span class="pc-seta" aria-hidden="true">›</span>' : ''}</span>`;
 
 function render() {
   const d = dados;
   const ticket = d.mes.quantidade ? Math.round(d.mes.total / d.mes.quantidade) : 0;
   const tarefasHoje = d.pendentes.length + d.cobrancasHoje;
+  // Parte do fiado que já está para cobrar (barra de cima a baixo do cartão de fiado).
+  const pctVencido = d.receber ? Math.round((d.vencido / d.receber) * 100) : 0;
+  const maiorQtd = Math.max(1, ...d.maisVendidos.map((p) => p.qtd));
 
   $('#painel-data').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
   $('#painel').innerHTML = `
-    <button class="painel-card painel-hoje" data-ir="vendas">
-      <span class="painel-rotulo">Vendido hoje</span>
-      <span class="painel-heroi">${moedaCentavos(d.hoje.total)}</span>
-      <span class="painel-linha">Lucro ${moedaCentavos(d.hoje.lucro)} · ${d.hoje.quantidade} ${d.hoje.quantidade === 1 ? 'venda' : 'vendas'}</span>
+    <button class="pc pc-hoje" data-ir="vendas" style="grid-area:hoje">
+      <span class="pc-cabeca"><span class="pc-titulo">Vendido hoje</span><span class="pc-seta" aria-hidden="true">›</span></span>
+      <span class="pc-heroi">${moedaCentavos(d.hoje.total)}</span>
+      <span class="pc-pilulas">
+        <span class="pc-pilula">Lucro ${moedaCentavos(d.hoje.lucro)}</span>
+        <span class="pc-pilula">${d.hoje.quantidade} ${d.hoje.quantidade === 1 ? 'venda' : 'vendas'}</span>
+      </span>
     </button>
 
-    <button class="painel-card" data-ir="vendas">
-      <span class="painel-titulo">Este mês · ${d.mesNome}</span>
-      <span class="painel-grade">
+    <button class="pc" data-ir="vendas" style="grid-area:mes">
+      ${cabecalho('📅', `Este mês · ${d.mesNome}`)}
+      <span class="pc-numeros">
         <span><small>Vendido</small><strong>${reais(d.mes.total)}</strong></span>
         <span><small>Lucro${d.semCusto ? '*' : ''}</small><strong>${reais(d.mes.lucro)}</strong></span>
         <span><small>Entrou no caixa</small><strong>${reais(d.caixa)}</strong></span>
         <span><small>Ticket médio</small><strong>${reais(ticket)}</strong></span>
       </span>
-      ${variacao() ? `<span class="painel-linha">${variacao()}</span>` : ''}
-      ${d.semCusto ? '<span class="painel-nota">* algumas vendas estão sem custo, então o lucro real é menor</span>' : ''}
+      ${variacao() ? `<span class="pc-rodape">${variacao()}</span>` : ''}
+      ${d.semCusto ? '<span class="pc-nota">* algumas vendas estão sem custo, então o lucro real é menor</span>' : ''}
     </button>
 
-    <section class="painel-card" aria-label="Vendas por dia">
-      <span class="painel-titulo">Vendas por dia · ${d.mesNome}</span>
+    <section class="pc" aria-label="Vendas por dia" style="grid-area:dias">
+      ${cabecalho('📊', `Vendas por dia · ${d.mesNome}`, false)}
       <div class="grafico" id="grafico-dias"></div>
     </section>
 
-    <button class="painel-card" data-ir="cobrancas">
-      <span class="painel-titulo">Fiado e cobranças</span>
-      <span class="painel-grade">
+    <button class="pc" data-ir="cobrancas" style="grid-area:fiado">
+      ${cabecalho('💰', 'Fiado e cobranças')}
+      <span class="pc-numeros pc-numeros-2">
         <span><small>A receber</small><strong>${reais(d.receber)}</strong></span>
         <span><small>Para cobrar</small><strong class="${d.vencido ? 'alerta' : ''}">${reais(d.vencido)}</strong></span>
       </span>
-      ${d.cobrancasHoje ? `<span class="painel-linha">⏰ ${d.cobrancasHoje} ${d.cobrancasHoje === 1 ? 'cobrança marcada' : 'cobranças marcadas'} para hoje</span>` : ''}
+      ${d.receber ? `<span class="pc-medidor" role="img" aria-label="${pctVencido}% do fiado já está para cobrar"><span style="width:${pctVencido}%"></span></span>
+      <span class="pc-nota">${pctVencido}% do fiado já venceu</span>` : ''}
+      ${d.cobrancasHoje ? `<span class="pc-aviso">⏰ ${d.cobrancasHoje} ${d.cobrancasHoje === 1 ? 'cobrança marcada' : 'cobranças marcadas'} para hoje</span>` : ''}
     </button>
 
-    <button class="painel-card" data-ir="tarefas">
-      <span class="painel-titulo">Tarefas de hoje</span>
+    <button class="pc" data-ir="tarefas" style="grid-area:tarefas">
+      ${cabecalho('✅', 'Tarefas de hoje')}
       ${tarefasHoje ? `
-        <span class="painel-heroi painel-heroi-menor">${tarefasHoje} para fazer</span>
-        ${d.pendentes.length ? `<ul class="painel-tarefas">${d.pendentes.slice(0, 3).map((t) => `<li>${esc(t.texto)}</li>`).join('')}</ul>` : ''}
-        ${d.pendentes.length > 3 ? `<span class="painel-linha">e mais ${d.pendentes.length - 3}</span>` : ''}`
-    : `<span class="painel-linha">Tudo feito por hoje ✓${d.amanha ? ` · ${d.amanha} para amanhã` : ''}</span>`}
+        <span class="pc-medio">${tarefasHoje} <small>para fazer</small></span>
+        ${d.pendentes.length ? `<ul class="pc-tarefas">${d.pendentes.slice(0, 3).map((t) => `<li>${esc(t.texto)}</li>`).join('')}</ul>` : ''}
+        ${d.pendentes.length > 3 ? `<span class="pc-nota">e mais ${d.pendentes.length - 3}</span>` : ''}`
+    : `<span class="pc-medio pc-ok">Tudo feito ✓</span>${d.amanha ? `<span class="pc-nota">${d.amanha} para amanhã</span>` : ''}`}
     </button>
 
-    <section class="painel-card" aria-label="Mais vendidos do mês">
-      <span class="painel-titulo">Mais vendidos · ${d.mesNome}</span>
-      ${d.maisVendidos.length ? `<ol class="painel-ranking">${d.maisVendidos.map((p) => `
-        <li><span class="ranking-nome">${esc(p.nome)}</span><span class="ranking-qtd">${p.qtd} un.</span><span class="ranking-valor">${reais(p.valor)}</span></li>`).join('')}</ol>`
-    : '<span class="painel-linha">Nenhuma venda este mês ainda.</span>'}
+    <section class="pc" aria-label="Mais vendidos do mês" style="grid-area:top">
+      ${cabecalho('🏆', `Mais vendidos · ${d.mesNome}`, false)}
+      ${d.maisVendidos.length ? `<ol class="pc-ranking">${d.maisVendidos.map((p, i) => `
+        <li>
+          <span class="ranking-pos">${i + 1}</span>
+          <span class="ranking-info">
+            <span class="ranking-linha"><span class="ranking-nome">${esc(p.nome)}</span><span class="ranking-valor">${reais(p.valor)}</span></span>
+            <span class="ranking-barra"><span style="width:${Math.round((p.qtd / maiorQtd) * 100)}%"></span></span>
+            <span class="ranking-qtd">${p.qtd} ${p.qtd === 1 ? 'unidade' : 'unidades'}</span>
+          </span>
+        </li>`).join('')}</ol>`
+    : '<span class="pc-nota">Nenhuma venda este mês ainda.</span>'}
     </section>
 
-    <section class="painel-card" aria-label="Últimos 6 meses">
-      <span class="painel-titulo">Últimos 6 meses</span>
+    <section class="pc" aria-label="Últimos 6 meses" style="grid-area:meses">
+      ${cabecalho('📈', 'Últimos 6 meses', false)}
       <div class="grafico" id="grafico-meses"></div>
     </section>
   `;
-  desenharBarras($('#grafico-dias'), d.porDia, { marcarCada: 5 });
-  desenharBarras($('#grafico-meses'), d.porMes, {});
+  const alto = window.innerWidth >= 900 ? 220 : 170;
+  desenharBarras($('#grafico-dias'), d.porDia, { marcarCada: window.innerWidth >= 900 ? 1 : 5, altura: alto });
+  desenharBarras($('#grafico-meses'), d.porMes, { altura: alto });
 }
 
 // ---------- Gráfico de barras (SVG, uma cor, toque mostra o valor) ----------
@@ -187,10 +209,9 @@ function topoRedondo(max) {
   return [1, 2, 2.5, 5, 10].map((f) => f * p).find((v) => v >= max);
 }
 
-function desenharBarras(caixa, pontos, { marcarCada = 1 }) {
+function desenharBarras(caixa, pontos, { marcarCada = 1, altura = 170 }) {
   const largura = Math.max(260, caixa.clientWidth || 320);
-  const altura = 170;
-  const esq = 44; const dir = 4; const topo = 10; const base = 24;
+  const esq = 44; const dir = 4; const topo = 22; const base = 24;
   const areaL = largura - esq - dir;
   const areaA = altura - topo - base;
   const max = topoRedondo(Math.max(...pontos.map((p) => p.total)));
@@ -215,11 +236,14 @@ function desenharBarras(caixa, pontos, { marcarCada = 1 }) {
   const marcas = pontos.map((p, i) => {
     const cx = esq + faixa * i + faixa / 2;
     const x = cx - larguraBarra / 2;
-    const mostrarRotulo = marcarCada === 1 || i === 0 || (i + 1) % marcarCada === 0 || p.destaque;
+    // Rótulos espaçados; perto da barra de hoje só aparece o dela (não encavala).
+    const pertoDoAtual = marcarCada > 1 && !p.destaque && pontos.some((q, j) => q.destaque && Math.abs(j - i) <= 2);
+    const mostrarRotulo = p.destaque || (!pertoDoAtual && (marcarCada === 1 || i === 0 || (i + 1) % marcarCada === 0));
     return `
       <g class="barra ${p.destaque ? 'atual' : ''}" data-i="${i}">
         <path d="${barra(x, p.total)}"/>
-        ${mostrarRotulo ? `<text x="${cx}" y="${altura - 6}" class="eixo" text-anchor="middle">${esc(p.rotulo)}</text>` : ''}
+        ${mostrarRotulo ? `<text x="${cx}" y="${altura - 6}" class="eixo ${p.destaque ? 'eixo-atual' : ''}" text-anchor="middle">${esc(p.rotulo)}</text>` : ''}
+        ${p.destaque && p.total ? `<text x="${Math.min(Math.max(cx, esq + 16), largura - 16)}" y="${y(p.total) - 7}" class="valor-atual" text-anchor="middle">${compacto(p.total)}</text>` : ''}
         <rect x="${esq + faixa * i}" y="${topo}" width="${faixa}" height="${areaA + base}" class="alvo"/>
       </g>`;
   }).join('');
