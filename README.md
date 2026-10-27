@@ -8,6 +8,7 @@ Sistema de gestão da Felipão Suplementos
 - Botões de **Entrada** e **Saída** com motivo; todo ajuste fica no histórico com data e hora.
 - "Outro sabor" cria uma cópia do produto para cadastrar outro sabor rapidinho.
 - Produto nunca é apagado: vai para **Arquivados** e pode ser restaurado.
+- **🛒 Para pedir** (em Produtos): anota o que acabou ou um produto novo para trazer, com quantidade, marca e observação (sugere os produtos cadastrados). A lista fica separada por marca: **A pedir → ✓ Pedi → 📦 Chegou**, com data e hora; produto novo que chegou pode ser cadastrado na hora. Botão para **copiar a lista** e mandar ao fornecedor no WhatsApp, e "Pôr em Para pedir" na ficha de cada produto.
 - **Importar** o catálogo da loja (`dados/catalogo-felipao.csv`) ou qualquer planilha CSV, com prévia antes de gravar.
 - **Backup**: baixa planilhas de produtos e do histórico (abrem no Excel).
 

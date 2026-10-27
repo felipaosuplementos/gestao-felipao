@@ -210,6 +210,7 @@ async function abrirProduto(id) {
     <div class="acoes-produto">
       <button class="btn" data-acao="editar">✏️ Editar</button>
       ${p.arquivado ? '' : '<button class="btn btn-primario" data-acao="vender">🛒 Vender</button>'}
+      <button class="btn" data-acao="pedir">📝 Pôr em Para pedir</button>
       <button class="btn" data-acao="duplicar">➕ Outro sabor</button>
       <button class="btn" data-acao="${p.arquivado ? 'restaurar' : 'arquivar'}">${p.arquivado ? '♻️ Restaurar' : '🗂️ Arquivar'}</button>
     </div>
@@ -231,6 +232,7 @@ $('#produto-conteudo').addEventListener('click', async (e) => {
   if (!acao) return;
   const p = produtoAberto;
   if (acao === 'editar') abrirFormulario(p);
+  if (acao === 'pedir') document.dispatchEvent(new CustomEvent('pedir-produto', { detail: p }));
   if (acao === 'vender') {
     $('#dlg-produto').close();
     document.dispatchEvent(new CustomEvent('vender-produto', { detail: p.id }));
@@ -634,6 +636,9 @@ $('#menu-controlar-estoque').addEventListener('click', async () => {
   $('#dlg-menu').close();
   avisar(ligar ? 'Controle de estoque ligado' : 'Controle de estoque desligado');
 });
+
+// Produto novo que chegou (lista Para pedir): abre o cadastro com o nome e a marca preenchidos.
+document.addEventListener('cadastrar-produto', (e) => abrirFormulario({ nome: e.detail.nome, marca: e.detail.marca || '' }));
 
 aplicarModoEstoque();
 db.pedirArmazenamentoPersistente();

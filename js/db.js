@@ -7,9 +7,10 @@
 //   lancamentos — fiado e pagamentos de cada cliente (nunca apagados; só cancelados)
 //   vendas      — cada venda com itens, forma de pagamento e lucro (nunca apagadas; só canceladas)
 //   tarefas     — tarefas do dia a dia (texto, dia, hora, quando foi feita)
+//   pedidos     — lista do que pedir aos fornecedores (acabou ou produto novo)
 
 const NOME_BANCO = 'gestao-felipao';
-const VERSAO = 4;
+const VERSAO = 5;
 
 let bancoPromessa = null;
 
@@ -43,6 +44,9 @@ function abrir() {
       }
       if (!db.objectStoreNames.contains('tarefas')) {
         db.createObjectStore('tarefas', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('pedidos')) {
+        db.createObjectStore('pedidos', { keyPath: 'id' });
       }
     };
     req.onsuccess = () => {
@@ -464,9 +468,33 @@ export async function apagarTarefa(id) {
   await concluir(tx);
 }
 
+// ---------- Lista de pedidos ----------
+
+export async function listarPedidos() {
+  const db = await abrir();
+  return pedido(db.transaction('pedidos').objectStore('pedidos').getAll());
+}
+
+export async function salvarPedidos(itens) {
+  const db = await abrir();
+  const tx = escrever(db, 'pedidos');
+  const dataHora = agora();
+  const salvos = itens.map((p) => ({ ...p, id: p.id || novoId(), criadoEm: p.criadoEm || dataHora, atualizadoEm: dataHora }));
+  salvos.forEach((p) => tx.objectStore('pedidos').put(p));
+  await concluir(tx);
+  return salvos;
+}
+
+export async function apagarPedido(id) {
+  const db = await abrir();
+  const tx = escrever(db, 'pedidos');
+  tx.objectStore('pedidos').delete(id);
+  await concluir(tx);
+}
+
 // ---------- Para a sincronização ----------
 
-export const LOJAS = ['produtos', 'movimentos', 'fotos', 'clientes', 'lancamentos', 'vendas', 'tarefas'];
+export const LOJAS = ['produtos', 'movimentos', 'fotos', 'clientes', 'lancamentos', 'vendas', 'tarefas', 'pedidos'];
 
 // Tudo o que está guardado neste aparelho (para enviar à nuvem na primeira vez).
 export async function lerTudo() {
