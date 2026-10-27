@@ -8,9 +8,10 @@
 //   vendas      — cada venda com itens, forma de pagamento e lucro (nunca apagadas; só canceladas)
 //   tarefas     — tarefas do dia a dia (texto, dia, hora, quando foi feita)
 //   pedidos     — lista do que pedir aos fornecedores (acabou ou produto novo)
+//   ajustes     — informações do sistema que valem para todos os aparelhos (ex.: data do último backup)
 
 const NOME_BANCO = 'gestao-felipao';
-const VERSAO = 5;
+const VERSAO = 6;
 
 let bancoPromessa = null;
 
@@ -47,6 +48,9 @@ function abrir() {
       }
       if (!db.objectStoreNames.contains('pedidos')) {
         db.createObjectStore('pedidos', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('ajustes')) {
+        db.createObjectStore('ajustes', { keyPath: 'id' });
       }
     };
     req.onsuccess = () => {
@@ -515,9 +519,23 @@ export async function apagarPedido(id) {
   await concluir(tx);
 }
 
+// ---------- Ajustes (sincronizados entre os aparelhos) ----------
+
+export async function lerAjuste(id) {
+  const db = await abrir();
+  return pedido(db.transaction('ajustes').objectStore('ajustes').get(id));
+}
+
+export async function salvarAjuste(ajuste) {
+  const db = await abrir();
+  const tx = escrever(db, 'ajustes');
+  tx.objectStore('ajustes').put({ ...ajuste, atualizadoEm: agora() });
+  await concluir(tx);
+}
+
 // ---------- Para a sincronização ----------
 
-export const LOJAS = ['produtos', 'movimentos', 'fotos', 'clientes', 'lancamentos', 'vendas', 'tarefas', 'pedidos'];
+export const LOJAS = ['produtos', 'movimentos', 'fotos', 'clientes', 'lancamentos', 'vendas', 'tarefas', 'pedidos', 'ajustes'];
 
 // Tudo o que está guardado neste aparelho (para enviar à nuvem na primeira vez).
 export async function lerTudo() {

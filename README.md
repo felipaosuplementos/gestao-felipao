@@ -59,7 +59,7 @@ Sistema de gestão da Felipão Suplementos
 Os dados ficam guardados no próprio celular (funciona sem internet). Faça backup com frequência.
 
 ## Backup completo
-- **Menu ☰ → 💾 Baixar backup completo**: um arquivo só com tudo (produtos e fotos, clientes, fiado, vendas, tarefas, lista de pedidos). Guarde no Google Drive uma vez por semana; o Painel lembra quando passar 7 dias.
+- **Menu ☰ → 💾 Baixar backup completo**: um arquivo só com tudo (produtos e fotos, clientes, fiado, vendas, tarefas, lista de pedidos). Guarde no Google Drive uma vez por semana; o Painel lembra quando passar 7 dias (a data do último backup vale para o celular e o computador).
 - **♻️ Restaurar um backup completo**: devolve ao sistema (e à nuvem) tudo o que está no arquivo. Não apaga nada do que foi criado depois; pede para digitar RESTAURAR e baixa um backup de agora antes.
 
 ## Como abrir

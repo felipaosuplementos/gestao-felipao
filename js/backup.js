@@ -4,7 +4,7 @@
 
 import * as db from './db.js';
 import { baixarArquivo } from './planilha.js';
-import { $, dataHora, avisar, confirmarComMotivo, semAcento, lerPreferencia, gravarPreferencia } from './comum.js';
+import { $, dataHora, avisar, confirmarComMotivo, semAcento, lerPreferencia } from './comum.js';
 
 const FORMATO = 1;
 const DIAS_LEMBRAR = 7;
@@ -33,8 +33,11 @@ export async function baixarBackupCompleto() {
   const arquivo = { app: 'gestao-felipao', formato: FORMATO, criadoEm: new Date().toISOString(), contagem, dados };
   const dia = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
   const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).replace(':', 'h');
-  baixarArquivo(`felipao-backup-completo-${dia}-${hora}.json`, JSON.stringify(arquivo), 'application/json');
-  gravarPreferencia('ultimoBackupCompleto', arquivo.criadoEm);
+  const json = JSON.stringify(arquivo);
+  // Anota a data ANTES de baixar (no iPhone o download pode tirar o sistema da tela)
+  // e no banco que sincroniza: fazendo no celular, o aviso some também no computador.
+  await db.salvarAjuste({ id: 'backup', ultimoBackupCompleto: arquivo.criadoEm });
+  baixarArquivo(`felipao-backup-completo-${dia}-${hora}.json`, json, 'application/json');
   atualizarLembrete();
   return contagem;
 }
@@ -63,7 +66,9 @@ async function restaurar(arquivo) {
 
   await baixarBackupCompleto();
   const fotos = await Promise.all((backup.dados.fotos || []).map(async (f) => ({ chave: f.chave, valor: await paraBlob(f.valor) })));
-  await db.restaurarTudo({ ...backup.dados, fotos });
+  // A data do último backup não volta para a do arquivo (o backup de segurança acabou de ser feito).
+  const { ajustes: _ajustes, ...dados } = backup.dados;
+  await db.restaurarTudo({ ...dados, fotos });
   await db.corrigirNumerosVendas();
   document.dispatchEvent(new CustomEvent('dados-mudaram'));
   avisar(`Backup de ${dataHora(backup.criadoEm)} restaurado`);
@@ -71,18 +76,20 @@ async function restaurar(arquivo) {
 
 // ---------- Lembrete semanal ----------
 
-function diasDesdeBackup() {
-  const ultimo = lerPreferencia('ultimoBackupCompleto');
-  return ultimo ? (Date.now() - new Date(ultimo).getTime()) / 864e5 : Infinity;
+// Data do último backup completo feito em qualquer aparelho (a anotação antiga, só deste aparelho, também vale).
+async function ultimoBackup() {
+  const ajuste = await db.lerAjuste('backup').catch(() => null);
+  const datas = [ajuste?.ultimoBackupCompleto, lerPreferencia('ultimoBackupCompleto')].filter(Boolean).sort();
+  return datas[datas.length - 1] || null;
 }
 
-function atualizarLembrete() {
-  const ultimo = lerPreferencia('ultimoBackupCompleto');
-  const atrasado = diasDesdeBackup() >= DIAS_LEMBRAR;
+async function atualizarLembrete() {
+  const ultimo = await ultimoBackup();
+  const atrasado = !ultimo || (Date.now() - new Date(ultimo).getTime()) / 864e5 >= DIAS_LEMBRAR;
   const info = $('#menu-backup-info');
   info.textContent = ultimo
-    ? `Último backup completo neste aparelho: ${dataHora(ultimo)}.${atrasado ? ' Já passou uma semana: faça outro.' : ''}`
-    : 'Nenhum backup completo feito neste aparelho ainda. Faça um por semana e guarde no Google Drive.';
+    ? `Último backup completo: ${dataHora(ultimo)}.${atrasado ? ' Já passou uma semana: faça outro.' : ''}`
+    : 'Nenhum backup completo feito ainda. Faça um por semana e guarde no Google Drive.';
   info.classList.toggle('menu-info-alerta', atrasado);
   const aviso = $('#aviso-backup-completo');
   aviso.hidden = !atrasado;
@@ -111,4 +118,6 @@ $('#input-backup-completo').addEventListener('change', async (e) => {
 });
 $('#aviso-backup-completo').addEventListener('click', (e) => { if (e.target.closest('#btn-backup-aviso-completo')) baixarComAviso(); });
 document.querySelectorAll('.btn-abrir-menu').forEach((b) => b.addEventListener('click', atualizarLembrete));
+// Backup feito no outro aparelho chega pela nuvem: atualiza o aviso.
+document.addEventListener('dados-mudaram', atualizarLembrete);
 atualizarLembrete();
