@@ -780,3 +780,8 @@ button.painel-card:active { background: var(--azul-claro); }
 /* Lápis: mostra que tocar no texto da tarefa abre a edição */
 .tarefa-lapis { font-size: 13px; opacity: .45; white-space: nowrap; }
 .tarefa-feita .tarefa-nome .tarefa-lapis { display: inline-block; text-decoration: none; }
+
+/* Backup completo */
+.menu-info-alerta { color: var(--laranja); font-weight: 600; }
+.aviso-topo { max-width: 688px; margin: 12px auto 0; }
+@media (max-width: 720px) { .aviso-topo { margin: 12px 16px 0; } }
