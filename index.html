@@ -37,6 +37,7 @@
         <button class="btn-icone btn-abrir-menu" aria-label="Menu">☰</button>
       </div>
     </header>
+    <div id="aviso-backup-completo" class="aviso aviso-topo" hidden></div>
     <main id="painel"></main>
   </section>
 
@@ -298,6 +299,12 @@
         <p id="menu-nuvem-info" class="menu-info"></p>
         <button class="btn" id="menu-sair">🚪 Sair desta conta</button>
       </div>
+      <p class="menu-titulo">Backup completo</p>
+      <button class="btn btn-primario" id="menu-backup-completo">💾 Baixar backup completo (tudo)</button>
+      <label class="btn">♻️ Restaurar um backup completo
+        <input id="input-backup-completo" type="file" accept=".json,application/json" hidden>
+      </label>
+      <p id="menu-backup-info" class="menu-info"></p>
       <p class="menu-titulo">Produtos</p>
       <button class="btn" id="menu-exportar">⬇️ Backup: baixar planilha de produtos</button>
       <button class="btn" id="menu-controlar-estoque"></button>
@@ -613,6 +620,7 @@
   <script type="module" src="js/tarefas.js"></script>
   <script type="module" src="js/painel.js"></script>
   <script type="module" src="js/pedidos.js"></script>
+  <script type="module" src="js/backup.js"></script>
   <script type="module" src="js/nuvem.js"></script>
 </body>
 </html>
