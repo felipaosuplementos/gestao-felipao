@@ -525,7 +525,7 @@ function abrirDetalhe(id) {
   if (v.clienteNome) pagamento.push(`cliente ${v.clienteNome}`);
   if (v.parcelasFiado > 1) pagamento.push(`${v.parcelasFiado} parcelas`);
   $('#venda-detalhe').innerHTML = `
-    <p class="detalhe-sub">Venda nº ${v.numero} · ${dataCurta(v.dia)} às ${hora(v.dataHora)}${v.cancelada ? ' <span class="etiqueta etiqueta-perigo">Cancelada</span>' : ''}
+    <p class="detalhe-sub">Venda nº ${v.numero}${v.numeroAntigo ? ` (era nº ${v.numeroAntigo})` : ''} · ${dataCurta(v.dia)} às ${hora(v.dataHora)}${v.cancelada ? ' <span class="etiqueta etiqueta-perigo">Cancelada</span>' : ''}
       ${v.editadaEm ? `<br>Editada em ${dataHoraCurta(v.editadaEm)}` : ''}</p>
     <ul class="historico">${v.itens.map((i) => `
       <li><div>${i.quantidade}x ${esc(i.nome)}${i.variacao ? ` ${esc(i.variacao)}` : ''}<small>${moedaCentavos(i.precoUnit)} cada${i.custoUnit != null ? ` · custo ${moedaCentavos(i.custoUnit)}` : ''}</small></div>
@@ -596,13 +596,26 @@ $('#dia-seguinte').addEventListener('click', () => mudarDia(1));
 
 // Ao abrir a tela Vender, já deixa os dados da Nova venda prontos.
 document.addEventListener('tela-aberta', (e) => { if (e.detail === 'vendas') { carregar(); carregarBase(); } });
-document.addEventListener('dados-mudaram', () => { fotos.clear(); esquecerBase(); carregar(); });
+document.addEventListener('dados-mudaram', () => { fotos.clear(); esquecerBase(); carregar(); corrigirNumeros(); });
 // Botão "Vender" na ficha do produto.
 document.addEventListener('vender-produto', async (e) => {
   document.dispatchEvent(new CustomEvent('mostrar-tela', { detail: 'vendas' }));
   await abrirNovaVenda(e.detail);
 });
 
+// Venda com número repetido (PC e celular ao mesmo tempo): a mais nova ganha número novo.
+let corrigindo = false;
+async function corrigirNumeros() {
+  if (corrigindo) return;
+  corrigindo = true;
+  try {
+    if (await db.corrigirNumerosVendas()) await carregar();
+  } finally {
+    corrigindo = false;
+  }
+}
+
 carregar();
+corrigirNumeros();
 // Deixa a Nova venda pronta assim que o sistema abre.
 setTimeout(() => carregarBase().catch(() => {}), 1500);

@@ -7,9 +7,10 @@
 //   lancamentos — fiado e pagamentos de cada cliente (nunca apagados; só cancelados)
 //   vendas      — cada venda com itens, forma de pagamento e lucro (nunca apagadas; só canceladas)
 //   tarefas     — tarefas do dia a dia (texto, dia, hora, quando foi feita)
+//   pedidos     — lista do que pedir aos fornecedores (acabou ou produto novo)
 
 const NOME_BANCO = 'gestao-felipao';
-const VERSAO = 4;
+const VERSAO = 5;
 
 let bancoPromessa = null;
 
@@ -43,6 +44,9 @@ function abrir() {
       }
       if (!db.objectStoreNames.contains('tarefas')) {
         db.createObjectStore('tarefas', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('pedidos')) {
+        db.createObjectStore('pedidos', { keyPath: 'id' });
       }
     };
     req.onsuccess = () => {
@@ -328,7 +332,8 @@ export async function registrarVenda(venda, { clienteNovo = null, lancamentos = 
   const dataHora = agora();
   const vendas = tx.objectStore('vendas');
   const produtos = tx.objectStore('produtos');
-  const numero = (await pedido(vendas.count())) + 1;
+  // Próximo número = maior número já usado + 1 (contar as vendas podia repetir número).
+  const numero = Math.max(0, ...(await pedido(vendas.getAll())).map((v) => v.numero || 0)) + 1;
   const salvar = { ...venda, id: venda.id || novoId(), numero, dataHora, cancelada: null, ...(baixarEstoque ? {} : { semEstoque: true }) };
 
   for (const item of baixarEstoque ? salvar.itens : []) {
@@ -408,6 +413,28 @@ export async function editarVenda(id, nova, { clienteNovo = null, lancamentos = 
   return salvar;
 }
 
+// Duas vendas com o mesmo número (feitas ao mesmo tempo no PC e no celular, ou uma sem internet):
+// a mais antiga fica com o número e as outras recebem números novos. Todos os aparelhos
+// chegam ao mesmo resultado, então podem fazer a correção ao mesmo tempo sem bagunçar.
+export async function corrigirNumerosVendas() {
+  const db = await abrir();
+  const todas = await pedido(db.transaction('vendas').objectStore('vendas').getAll());
+  const porNumero = new Map();
+  for (const v of todas) (porNumero.get(v.numero) || porNumero.set(v.numero, []).get(v.numero)).push(v);
+  const repetidas = [...porNumero.values()].filter((g) => g.length > 1);
+  if (!repetidas.length) return 0;
+  let proximo = Math.max(...todas.map((v) => v.numero || 0));
+  const trocar = [];
+  for (const grupo of repetidas.sort((a, b) => a[0].numero - b[0].numero)) {
+    grupo.sort((a, b) => a.dataHora.localeCompare(b.dataHora) || a.id.localeCompare(b.id));
+    for (const v of grupo.slice(1)) trocar.push({ ...v, numero: ++proximo, numeroAntigo: v.numeroAntigo ?? v.numero });
+  }
+  const tx = escrever(db, 'vendas');
+  trocar.forEach((v) => tx.objectStore('vendas').put(v));
+  await concluir(tx);
+  return trocar.length;
+}
+
 // Cancela a venda: devolve os produtos ao estoque e cancela o fiado dela. Nada é apagado.
 export async function cancelarVenda(id, motivo) {
   const db = await abrir();
@@ -464,9 +491,33 @@ export async function apagarTarefa(id) {
   await concluir(tx);
 }
 
+// ---------- Lista de pedidos ----------
+
+export async function listarPedidos() {
+  const db = await abrir();
+  return pedido(db.transaction('pedidos').objectStore('pedidos').getAll());
+}
+
+export async function salvarPedidos(itens) {
+  const db = await abrir();
+  const tx = escrever(db, 'pedidos');
+  const dataHora = agora();
+  const salvos = itens.map((p) => ({ ...p, id: p.id || novoId(), criadoEm: p.criadoEm || dataHora, atualizadoEm: dataHora }));
+  salvos.forEach((p) => tx.objectStore('pedidos').put(p));
+  await concluir(tx);
+  return salvos;
+}
+
+export async function apagarPedido(id) {
+  const db = await abrir();
+  const tx = escrever(db, 'pedidos');
+  tx.objectStore('pedidos').delete(id);
+  await concluir(tx);
+}
+
 // ---------- Para a sincronização ----------
 
-export const LOJAS = ['produtos', 'movimentos', 'fotos', 'clientes', 'lancamentos', 'vendas', 'tarefas'];
+export const LOJAS = ['produtos', 'movimentos', 'fotos', 'clientes', 'lancamentos', 'vendas', 'tarefas', 'pedidos'];
 
 // Tudo o que está guardado neste aparelho (para enviar à nuvem na primeira vez).
 export async function lerTudo() {
@@ -502,6 +553,20 @@ export async function aplicarDaNuvem(itens) {
     if (i.removido) loja.delete(i.chave);
     else if (i.loja === 'fotos') loja.put(i.valor, i.chave);
     else loja.put(i.valor);
+  }
+  await concluir(tx);
+}
+
+// Restaura um backup completo: grava de volta tudo o que está no arquivo (e envia para a nuvem).
+// Não apaga nada: o que foi criado depois do backup continua no sistema.
+export async function restaurarTudo(tudo) {
+  const db = await abrir();
+  const lojas = LOJAS.filter((nome) => Array.isArray(tudo[nome]));
+  const tx = escrever(db, lojas);
+  for (const nome of lojas) {
+    const loja = tx.objectStore(nome);
+    if (nome === 'fotos') tudo.fotos.forEach((f) => loja.put(f.valor, f.chave));
+    else tudo[nome].forEach((valor) => loja.put(valor));
   }
   await concluir(tx);
 }

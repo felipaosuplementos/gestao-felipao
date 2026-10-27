@@ -628,7 +628,6 @@ body.com-nuvem #aviso-backup, body.com-nuvem #aviso-backup-clientes { display: n
 .tarefa-cobranca { border-color: #f6d9a8; background: #fffaf1; }
 .btn-cobrar { flex: none; min-height: 44px; min-width: 48px; padding: 0 10px; font-size: 20px; text-decoration: none; }
 .tarefa-feita .tarefa-nome { text-decoration: line-through; color: var(--texto-suave); }
-.tarefa-feita .tarefa-texto { cursor: default; }
 .tarefas-vazio { margin: 0 2px; color: var(--texto-suave); }
 .feitas { margin-top: 18px; }
 .feitas summary { cursor: pointer; padding: 10px 2px; color: var(--texto-suave); font-weight: 600; }
@@ -817,3 +816,34 @@ button.pc-hoje:active { background: var(--azul-escuro); }
 .btn-conferir.ligado .conferir-marca { opacity: 1; }
 .tarefa-ok { border-color: #b7e2c4; }
 .tarefa-conferida { font-size: 13px; font-weight: 600; color: var(--verde); }
+
+/* Produtos → Para pedir */
+.segmento-contador-azul { background: var(--branco); color: var(--azul); }
+.segmento button[aria-pressed="true"] .segmento-contador-azul { background: var(--azul); color: var(--branco); }
+.pedido-novo { display: grid; gap: 4px; padding: 14px; margin-bottom: 8px; background: var(--branco); border: 1px solid var(--borda); border-radius: var(--raio); }
+.pedido-novo label { margin-bottom: 6px; }
+.pedido-campo input { font-size: 17px !important; }
+.pedido-novo .chips-motivo { margin: 2px 0 8px; }
+.pedido-detalhes { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 10px; }
+.pedido-novo .btn-largo { margin: 4px 0 0; }
+.btn-copiar-pedido { margin: 6px 0 0; }
+.pedido-marca { display: flex; align-items: center; gap: 8px; margin: 14px 2px 6px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--texto-suave); }
+.pedido-marca span { font-size: 12px; padding: 1px 7px; border-radius: 999px; background: var(--azul-claro); color: var(--azul-escuro); }
+.lista-pedidos { gap: 8px; }
+.pedido { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--branco); border: 1px solid var(--borda); border-radius: var(--raio); }
+.pedido-novo-produto { border-left: 4px solid var(--azul); }
+.pedido-info { flex: 1; min-width: 0; }
+.pedido-nome { font-weight: 700; overflow-wrap: anywhere; }
+.pedido-quando { font-size: 12.5px; color: var(--texto-suave); margin-top: 2px; }
+.pedido-acoes { flex: none; display: flex; gap: 6px; }
+.pedido-acoes .btn { min-height: 44px; padding: 8px 12px; font-size: 15px; }
+.btn-icone-texto { min-width: 44px; color: var(--texto-suave); }
+
+/* Lápis: mostra que tocar no texto da tarefa abre a edição */
+.tarefa-lapis { font-size: 13px; opacity: .45; white-space: nowrap; }
+.tarefa-feita .tarefa-nome .tarefa-lapis { display: inline-block; text-decoration: none; }
+
+/* Backup completo */
+.menu-info-alerta { color: var(--laranja); font-weight: 600; }
+.aviso-topo { max-width: 688px; margin: 12px auto 0; }
+@media (max-width: 720px) { .aviso-topo { margin: 12px 16px 0; } }

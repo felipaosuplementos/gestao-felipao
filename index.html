@@ -37,6 +37,7 @@
         <button class="btn-icone btn-abrir-menu" aria-label="Menu">☰</button>
       </div>
     </header>
+    <div id="aviso-backup-completo" class="aviso aviso-topo" hidden></div>
     <main id="painel"></main>
   </section>
 
@@ -49,16 +50,42 @@
       </div>
       <button id="btn-menu" class="btn-icone btn-abrir-menu" aria-label="Menu">☰</button>
     </div>
-    <input id="busca" type="search" placeholder="Buscar produto ou marca…" autocomplete="off">
-    <div class="filtros">
-      <div id="chips" class="chips" role="tablist"></div>
-      <select id="filtro-categoria" aria-label="Categoria">
-        <option value="">Todas as categorias</option>
-      </select>
+    <div class="segmento" id="produtos-modo">
+      <button data-modo="produtos" aria-pressed="true">📦 Produtos</button>
+      <button data-modo="pedidos" aria-pressed="false">🛒 Para pedir <b id="pedidos-contador" class="segmento-contador segmento-contador-azul" hidden></b></button>
+    </div>
+    <div id="produtos-filtros">
+      <input id="busca" type="search" placeholder="Buscar produto ou marca…" autocomplete="off">
+      <div class="filtros">
+        <div id="chips" class="chips" role="tablist"></div>
+        <select id="filtro-categoria" aria-label="Categoria">
+          <option value="">Todas as categorias</option>
+        </select>
+      </div>
     </div>
   </header>
 
   <main>
+    <div id="area-pedidos" hidden>
+      <form id="form-pedido" class="pedido-novo" autocomplete="off" novalidate>
+        <label class="pedido-campo">O que pedir?
+          <input name="texto" list="pedido-sugestoes" placeholder="Ex.: Ômega 3 Dux ou um produto novo" enterkeyhint="done">
+        </label>
+        <datalist id="pedido-sugestoes"></datalist>
+        <div class="chips chips-motivo" id="pedido-motivo">
+          <button type="button" class="chip" data-motivo="acabou" aria-pressed="true">Acabou</button>
+          <button type="button" class="chip" data-motivo="novo" aria-pressed="false">✨ Produto novo</button>
+        </div>
+        <div class="pedido-detalhes">
+          <label>Qtd.<input name="quantidade" inputmode="numeric" placeholder="1"></label>
+          <label>Marca / fornecedor<input name="marca" list="lista-marcas" placeholder="Opcional"></label>
+        </div>
+        <label>Observação<input name="observacao" placeholder="Ex.: sabor chocolate, pedir 2 caixas"></label>
+        <button type="submit" class="btn btn-primario btn-largo">＋ Anotar</button>
+      </form>
+      <div id="lista-pedidos"></div>
+    </div>
+    <div id="area-produtos">
     <div id="aviso-backup" class="aviso" hidden></div>
     <div id="vazio" class="vazio" hidden>
       <p><strong>Nenhum produto cadastrado ainda.</strong></p>
@@ -68,6 +95,7 @@
     <p id="contagem" class="contagem"></p>
     <button id="btn-copiar-lista" class="btn btn-largo" hidden>📋 Copiar a lista</button>
     <ul id="lista" class="lista"></ul>
+    </div>
   </main>
 
   <button id="btn-novo" class="fab">＋ Novo produto</button>
@@ -271,9 +299,16 @@
         <p id="menu-nuvem-info" class="menu-info"></p>
         <button class="btn" id="menu-sair">🚪 Sair desta conta</button>
       </div>
+      <p class="menu-titulo">Backup completo</p>
+      <button class="btn btn-primario" id="menu-backup-completo">💾 Baixar backup completo (tudo)</button>
+      <label class="btn">♻️ Restaurar um backup completo
+        <input id="input-backup-completo" type="file" accept=".json,application/json" hidden>
+      </label>
+      <p id="menu-backup-info" class="menu-info"></p>
       <p class="menu-titulo">Produtos</p>
       <button class="btn" id="menu-exportar">⬇️ Backup: baixar planilha de produtos</button>
       <button class="btn" id="menu-controlar-estoque"></button>
+      <button class="btn" id="menu-exportar-pedidos">⬇️ Backup: lista de pedidos</button>
       <button class="btn so-estoque" id="menu-historico">⬇️ Baixar histórico de estoque</button>
       <label class="btn">⬆️ Importar planilha (CSV)
         <input id="input-planilha" type="file" accept=".csv,text/csv,text/plain" hidden>
@@ -393,7 +428,7 @@
   <dialog id="dlg-tarefa" class="folha folha-baixa">
     <form id="form-tarefa" method="dialog" novalidate>
       <div class="folha-topo">
-        <h2>Tarefa</h2>
+        <h2>✏️ Editar tarefa</h2>
         <button type="button" class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
       </div>
       <label>O que fazer<textarea name="texto" rows="2" required></textarea></label>
@@ -584,6 +619,8 @@
   <script type="module" src="js/vendas.js"></script>
   <script type="module" src="js/tarefas.js"></script>
   <script type="module" src="js/painel.js"></script>
+  <script type="module" src="js/pedidos.js"></script>
+  <script type="module" src="js/backup.js"></script>
   <script type="module" src="js/nuvem.js"></script>
 </body>
 </html>

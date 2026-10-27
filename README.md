@@ -8,6 +8,7 @@ Sistema de gestão da Felipão Suplementos
 - Botões de **Entrada** e **Saída** com motivo; todo ajuste fica no histórico com data e hora.
 - "Outro sabor" cria uma cópia do produto para cadastrar outro sabor rapidinho.
 - Produto nunca é apagado: vai para **Arquivados** e pode ser restaurado.
+- **🛒 Para pedir** (em Produtos): anota o que acabou ou um produto novo para trazer, com quantidade, marca e observação (sugere os produtos cadastrados). A lista fica separada por marca: **A pedir → ✓ Pedi → 📦 Chegou**, com data e hora; produto novo que chegou pode ser cadastrado na hora. Botão para **copiar a lista** e mandar ao fornecedor no WhatsApp, e "Pôr em Para pedir" na ficha de cada produto.
 - **Importar** o catálogo da loja (`dados/catalogo-felipao.csv`) ou qualquer planilha CSV, com prévia antes de gravar.
 - **Backup**: baixa planilhas de produtos e do histórico (abrem no Excel).
 
@@ -56,6 +57,10 @@ Sistema de gestão da Felipão Suplementos
 - Configuração em `js/config-nuvem.js`; regras do Firestore em `firestore.rules`. Se o login falhar, dá para "Usar só neste aparelho por enquanto".
 
 Os dados ficam guardados no próprio celular (funciona sem internet). Faça backup com frequência.
+
+## Backup completo
+- **Menu ☰ → 💾 Baixar backup completo**: um arquivo só com tudo (produtos e fotos, clientes, fiado, vendas, tarefas, lista de pedidos). Guarde no Google Drive uma vez por semana; o Painel lembra quando passar 7 dias.
+- **♻️ Restaurar um backup completo**: devolve ao sistema (e à nuvem) tudo o que está no arquivo. Não apaga nada do que foi criado depois; pede para digitar RESTAURAR e baixa um backup de agora antes.
 
 ## Como abrir
 O sistema é um site simples (HTML, CSS e JavaScript, sem instalação).
