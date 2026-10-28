@@ -62,9 +62,11 @@ async function carregar() {
   const produtos = new Map();
   for (const v of doMes) {
     for (const i of v.itens) {
-      const p = produtos.get(i.produtoId) || { nome: `${i.nome}${i.variacao ? ` ${i.variacao}` : ''}`, qtd: 0, valor: 0 };
+      const p = produtos.get(i.produtoId) || { nome: `${i.nome}${i.variacao ? ` ${i.variacao}` : ''}`, qtd: 0, valor: 0, lucro: 0, semCusto: false };
       p.qtd += i.quantidade;
       p.valor += i.quantidade * i.precoUnit;
+      if (i.custoUnit == null) p.semCusto = true;
+      else p.lucro += i.quantidade * (i.precoUnit - i.custoUnit);
       produtos.set(i.produtoId, p);
     }
   }
@@ -97,6 +99,7 @@ async function carregar() {
     cobrancasHoje,
     pendentes,
     amanha: tarefas.filter((t) => !t.feita && t.data === dataAtalho('+1')).length,
+    vendidosMes: [...produtos.values()],
     maisVendidos: [...produtos.values()].sort((x, y) => y.qtd - x.qtd || y.valor - x.valor).slice(0, 5),
     porDia,
     porMes,
@@ -176,8 +179,8 @@ function render() {
     : `<span class="pc-medio pc-ok">Tudo feito ✓</span>${d.amanha ? `<span class="pc-nota">${d.amanha} para amanhã</span>` : ''}`}
     </button>
 
-    <section class="pc" aria-label="Mais vendidos do mês" style="grid-area:top">
-      ${cabecalho('🏆', `Mais vendidos · ${d.mesNome}`, false)}
+    <${d.maisVendidos.length ? 'button' : 'section'} class="pc" ${d.maisVendidos.length ? 'data-ir="mais-vendidos"' : ''} aria-label="Mais vendidos do mês" style="grid-area:top">
+      ${cabecalho('🏆', `Mais vendidos · ${d.mesNome}`, d.maisVendidos.length > 0)}
       ${d.maisVendidos.length ? `<ol class="pc-ranking">${d.maisVendidos.map((p, i) => `
         <li>
           <span class="ranking-pos">${i + 1}</span>
@@ -186,9 +189,10 @@ function render() {
             <span class="ranking-barra"><span style="width:${Math.round((p.qtd / maiorQtd) * 100)}%"></span></span>
             <span class="ranking-qtd">${p.qtd} ${p.qtd === 1 ? 'unidade' : 'unidades'}</span>
           </span>
-        </li>`).join('')}</ol>`
+        </li>`).join('')}</ol>
+      <span class="pc-ver-tudo">Ver todos os ${d.vendidosMes.length} produtos vendidos e o total ›</span>`
     : '<span class="pc-nota">Nenhuma venda este mês ainda.</span>'}
-    </section>
+    </${d.maisVendidos.length ? 'button' : 'section'}>
 
     <section class="pc" aria-label="Últimos 6 meses" style="grid-area:meses">
       ${cabecalho('📈', 'Últimos 6 meses', false)}
@@ -285,9 +289,49 @@ document.addEventListener('click', (e) => {
   document.querySelectorAll('.grafico .barra.ativa').forEach((b) => b.classList.remove('ativa'));
 });
 
+// ---------- Lista completa dos vendidos no mês ----------
+
+const ORDENS = {
+  qtd: (x, y) => y.qtd - x.qtd || y.valor - x.valor,
+  valor: (x, y) => y.valor - x.valor || y.qtd - x.qtd,
+  lucro: (x, y) => y.lucro - x.lucro || y.valor - x.valor,
+};
+let ordemLista = 'qtd';
+
+function renderListaVendidos() {
+  const lista = [...dados.vendidosMes].sort(ORDENS[ordemLista]);
+  const soma = (campo) => lista.reduce((s, p) => s + p[campo], 0);
+  const semCusto = lista.some((p) => p.semCusto);
+  $('#vendidos-titulo').textContent = `🏆 Vendidos em ${dados.mesNome}`;
+  $('#vendidos-total').innerHTML = `
+    <span><small>Produtos</small><strong>${lista.length}</strong></span>
+    <span><small>Unidades</small><strong>${soma('qtd')}</strong></span>
+    <span><small>Total</small><strong>${moedaCentavos(soma('valor'))}</strong></span>
+    <span><small>Lucro${semCusto ? '*' : ''}</small><strong>${moedaCentavos(soma('lucro'))}</strong></span>`;
+  $('#vendidos-ordem').querySelectorAll('[data-ordem]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ordem === ordemLista)));
+  $('#vendidos-lista').innerHTML = lista.map((p, i) => `
+    <li>
+      <span class="ranking-pos">${i + 1}</span>
+      <span class="vendido-info">
+        <span class="vendido-nome">${esc(p.nome)}</span>
+        <span class="vendido-sub">${p.qtd} ${p.qtd === 1 ? 'unidade' : 'unidades'} · lucro ${p.semCusto && !p.lucro ? '—' : moedaCentavos(p.lucro)}${p.semCusto && p.lucro ? '*' : ''}</span>
+      </span>
+      <span class="vendido-valor">${moedaCentavos(p.valor)}</span>
+    </li>`).join('');
+  $('#vendidos-nota').textContent = `Soma dos produtos vendidos no mês (sem descontos e frete), sem as vendas canceladas.${semCusto ? ' * Algumas vendas estão sem custo, então o lucro real é menor.' : ''}`;
+}
+
+$('#vendidos-ordem').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-ordem]');
+  if (!b) return;
+  ordemLista = b.dataset.ordem;
+  renderListaVendidos();
+});
+
 $('#painel').addEventListener('click', (e) => {
   const bloco = e.target.closest('[data-ir]');
   if (!bloco) return;
+  if (bloco.dataset.ir === 'mais-vendidos') { renderListaVendidos(); $('#dlg-mais-vendidos').showModal(); return; }
   if (bloco.dataset.ir === 'cobrancas') document.dispatchEvent(new CustomEvent('mostrar-cobrancas'));
   else document.dispatchEvent(new CustomEvent('mostrar-tela', { detail: bloco.dataset.ir }));
 });
