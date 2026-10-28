@@ -39,7 +39,7 @@ Sistema de gestão da Felipão Suplementos
 - **Hoje**: vendido, lucro e número de vendas.
 - **Este mês**: vendido, lucro, **entrou no caixa** (vendas pagas na hora + pagamentos de fiado recebidos) e **ticket médio**, comparando com o mesmo período do mês passado.
 - **Gráficos**: vendas por dia do mês e últimos 6 meses (toque na barra mostra vendido, lucro e número de vendas).
-- **Fiado** a receber e para cobrar, **tarefas de hoje** e os **5 mais vendidos** do mês.
+- **Fiado** a receber e para cobrar, **tarefas de hoje** e os **5 mais vendidos** do mês; tocando, abre a lista de todos os produtos vendidos no mês com o total (unidades, valor e lucro), ordenada por unidades, valor ou lucro.
 
 ## Tarefas (pronto)
 - Aba **Tarefas** na barra de baixo: anotar rápido para **hoje**, **amanhã** ou outro dia, com hora opcional.

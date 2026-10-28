@@ -848,3 +848,18 @@ button.pc-hoje:active { background: var(--azul-escuro); }
 .aviso-topo { max-width: 688px; margin: 12px auto 0; }
 @media (max-width: 720px) { .aviso-topo { margin: 12px 16px 0; } }
 @media (min-width: 900px) { #tela-inicio .aviso-topo { max-width: 1072px; margin-top: 20px; } }
+
+/* Painel: lista completa dos vendidos no mês */
+.pc-ver-tudo { font-size: 14px; font-weight: 700; color: var(--azul); }
+.vendidos-total { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 4px 0 12px; }
+.vendidos-total > span { min-width: 0; padding: 8px 10px; border-radius: 12px; background: var(--azul-claro); }
+.vendidos-total small { display: block; font-size: 12px; color: var(--texto-suave); }
+.vendidos-total strong { display: block; font-size: 16px; color: var(--azul-escuro); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vendidos-lista { list-style: none; margin: 0 0 10px; padding: 0; }
+.vendidos-lista li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--borda); }
+.vendidos-lista li:first-child .ranking-pos { background: var(--azul); color: var(--branco); }
+.vendido-info { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.vendido-nome { font-weight: 600; overflow-wrap: anywhere; }
+.vendido-sub { font-size: 13px; color: var(--texto-suave); }
+.vendido-valor { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (max-width: 420px) { .vendidos-total { grid-template-columns: 1fr 1fr; } }

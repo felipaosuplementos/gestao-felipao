@@ -585,6 +585,22 @@
     </form>
   </dialog>
 
+  <!-- Painel: todos os produtos vendidos no mês -->
+  <dialog id="dlg-mais-vendidos" class="folha">
+    <div class="folha-topo">
+      <h2 id="vendidos-titulo">🏆 Vendidos no mês</h2>
+      <button class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+    </div>
+    <div id="vendidos-total" class="vendidos-total"></div>
+    <div id="vendidos-ordem" class="chips chips-motivo">
+      <button type="button" class="chip" data-ordem="qtd" aria-pressed="true">Mais unidades</button>
+      <button type="button" class="chip" data-ordem="valor" aria-pressed="false">Maior valor (R$)</button>
+      <button type="button" class="chip" data-ordem="lucro" aria-pressed="false">Maior lucro</button>
+    </div>
+    <ol id="vendidos-lista" class="vendidos-lista"></ol>
+    <p id="vendidos-nota" class="pc-nota"></p>
+  </dialog>
+
   <!-- Detalhe da venda -->
   <dialog id="dlg-venda-detalhe" class="folha">
     <div class="folha-topo">
