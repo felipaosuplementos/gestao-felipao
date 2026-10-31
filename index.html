@@ -299,6 +299,7 @@
         <p id="menu-nuvem-info" class="menu-info"></p>
         <button class="btn" id="menu-sair">🚪 Sair desta conta</button>
       </div>
+      <button class="btn btn-primario" id="menu-relatorios">📊 Relatórios</button>
       <p class="menu-titulo">Backup completo</p>
       <button class="btn btn-primario" id="menu-backup-completo">💾 Baixar backup completo (tudo)</button>
       <label class="btn">♻️ Restaurar um backup completo
@@ -585,6 +586,26 @@
     </form>
   </dialog>
 
+  <!-- Relatórios -->
+  <dialog id="dlg-relatorios" class="folha folha-alta">
+    <div class="folha-topo">
+      <h2>📊 Relatórios</h2>
+      <button class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
+    </div>
+    <div id="rel-periodos" class="chips chips-motivo">
+      <button type="button" class="chip" data-periodo="mes" aria-pressed="true">Este mês</button>
+      <button type="button" class="chip" data-periodo="passado" aria-pressed="false">Mês passado</button>
+      <button type="button" class="chip" data-periodo="tres" aria-pressed="false">Últimos 3 meses</button>
+      <button type="button" class="chip" data-periodo="datas" aria-pressed="false">📅 Escolher datas</button>
+    </div>
+    <div id="rel-datas" class="duas" hidden>
+      <label>De<input id="rel-de" type="date"></label>
+      <label>Até<input id="rel-ate" type="date"></label>
+    </div>
+    <p class="rel-periodo">Período: <strong id="rel-periodo-texto"></strong></p>
+    <div id="rel-conteudo"></div>
+  </dialog>
+
   <!-- Painel: todos os produtos vendidos no mês -->
   <dialog id="dlg-mais-vendidos" class="folha">
     <div class="folha-topo">
@@ -637,6 +658,7 @@
   <script type="module" src="js/painel.js"></script>
   <script type="module" src="js/pedidos.js"></script>
   <script type="module" src="js/backup.js"></script>
+  <script type="module" src="js/relatorios.js"></script>
   <script type="module" src="js/nuvem.js"></script>
 </body>
 </html>
