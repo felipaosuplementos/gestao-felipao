@@ -104,6 +104,7 @@ function aplicarModo() {
   const pedidos = estado.modo === 'pedidos';
   $('#produtos-modo').querySelectorAll('[data-modo]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modo === estado.modo)));
   $('#produtos-filtros').hidden = pedidos;
+  $('#busca').hidden = pedidos;
   $('#area-produtos').hidden = pedidos;
   $('#area-pedidos').hidden = !pedidos;
   $('#btn-novo').hidden = pedidos;

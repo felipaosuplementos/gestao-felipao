@@ -208,6 +208,7 @@ function aplicarModo() {
   const cobrancas = estado.modo === 'cobrancas';
   $('#clientes-modo').querySelectorAll('[data-modo]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modo === estado.modo)));
   $('#clientes-filtros').hidden = cobrancas;
+  $('#busca-clientes').hidden = cobrancas;
   $('#clientes-area').hidden = cobrancas;
   $('#lista-cobrancas').hidden = !cobrancas;
   $('#btn-novo-cliente').hidden = cobrancas;

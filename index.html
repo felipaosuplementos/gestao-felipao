@@ -54,16 +54,17 @@
       <button data-modo="produtos" aria-pressed="true">📦 Produtos</button>
       <button data-modo="pedidos" aria-pressed="false">🛒 Para pedir <b id="pedidos-contador" class="segmento-contador segmento-contador-azul" hidden></b></button>
     </div>
-    <div id="produtos-filtros">
-      <input id="busca" type="search" placeholder="Buscar produto ou marca…" autocomplete="off">
-      <div class="filtros">
-        <div id="chips" class="chips" role="tablist"></div>
-        <select id="filtro-categoria" aria-label="Categoria">
-          <option value="">Todas as categorias</option>
-        </select>
-      </div>
-    </div>
+    <input id="busca" type="search" placeholder="Buscar produto ou marca…" autocomplete="off" aria-label="Buscar produto ou marca">
   </header>
+  <!-- Filtros: sobem junto com a lista (só o título, os botões e a busca ficam presos no topo) -->
+  <div class="topo-extra" id="produtos-filtros">
+    <div class="filtros">
+      <div id="chips" class="chips" role="tablist"></div>
+      <select id="filtro-categoria" aria-label="Categoria">
+        <option value="">Todas as categorias</option>
+      </select>
+    </div>
+  </div>
 
   <main>
     <div id="area-pedidos" hidden>
@@ -98,7 +99,7 @@
     </div>
   </main>
 
-  <button id="btn-novo" class="fab">＋ Novo produto</button>
+  <button id="btn-novo" class="fab" aria-label="Novo produto">＋<span> Novo produto</span></button>
   </section>
 
   <section id="tela-clientes" class="tela" hidden>
@@ -114,18 +115,19 @@
         <button data-modo="clientes" aria-pressed="true">👥 Clientes</button>
         <button data-modo="cobrancas" aria-pressed="false">💰 Cobranças <b id="cobrancas-contador" class="segmento-contador" hidden></b></button>
       </div>
+      <input id="busca-clientes" type="search" placeholder="Buscar cliente…" autocomplete="off" aria-label="Buscar cliente">
+    </header>
+    <!-- Totais e filtros: sobem junto com a lista -->
+    <div class="topo-extra">
       <div class="resumo-fiado">
         <div><small>A receber</small><strong id="total-receber">R$ 0,00</strong></div>
         <div><small>Para cobrar</small><strong id="total-vencido">R$ 0,00</strong></div>
         <div><small>Parcelas a vencer</small><strong id="total-a-vencer">R$ 0,00</strong></div>
       </div>
-      <div id="clientes-filtros">
-        <input id="busca-clientes" type="search" placeholder="Buscar cliente…" autocomplete="off">
-        <div class="filtros">
-          <div id="chips-clientes" class="chips"></div>
-        </div>
+      <div id="clientes-filtros" class="filtros">
+        <div id="chips-clientes" class="chips"></div>
       </div>
-    </header>
+    </div>
     <main>
       <div id="lista-cobrancas" hidden></div>
       <div id="clientes-area">
@@ -139,7 +141,7 @@
       <ul id="lista-clientes" class="lista"></ul>
       </div>
     </main>
-    <button id="btn-novo-cliente" class="fab">＋ Novo cliente</button>
+    <button id="btn-novo-cliente" class="fab" aria-label="Novo cliente">＋<span> Novo cliente</span></button>
   </section>
 
   <section id="tela-vendas" class="tela" hidden>
@@ -151,17 +153,20 @@
         </div>
         <button class="btn-icone btn-abrir-menu" aria-label="Menu">☰</button>
       </div>
-      <div class="resumo-fiado">
-        <div><small id="vendas-rotulo-dia">Vendido hoje</small><strong id="vendas-total">R$ 0,00</strong></div>
-        <div><small>Lucro estimado</small><strong id="vendas-lucro">R$ 0,00</strong></div>
-        <div><small>Vendas</small><strong id="vendas-quantidade">0</strong></div>
-      </div>
       <div class="filtro-dia">
         <button class="btn-icone" id="dia-anterior" aria-label="Dia anterior">‹</button>
         <input id="vendas-dia" type="date" aria-label="Dia">
         <button class="btn-icone" id="dia-seguinte" aria-label="Dia seguinte">›</button>
       </div>
     </header>
+    <!-- Totais do dia: sobem junto com a lista -->
+    <div class="topo-extra">
+      <div class="resumo-fiado">
+        <div><small id="vendas-rotulo-dia">Vendido hoje</small><strong id="vendas-total">R$ 0,00</strong></div>
+        <div><small>Lucro estimado</small><strong id="vendas-lucro">R$ 0,00</strong></div>
+        <div><small>Vendas</small><strong id="vendas-quantidade">0</strong></div>
+      </div>
+    </div>
     <main>
       <div id="vendas-formas" class="formas-resumo"></div>
       <div id="vazio-vendas" class="vazio" hidden>
@@ -170,7 +175,7 @@
       </div>
       <ul id="lista-vendas" class="lista"></ul>
     </main>
-    <button id="btn-nova-venda" class="fab">＋ Nova venda</button>
+    <button id="btn-nova-venda" class="fab" aria-label="Nova venda">＋<span> Nova venda</span></button>
   </section>
 
   <section id="tela-tarefas" class="tela" hidden>
@@ -183,9 +188,12 @@
         </div>
         <button class="btn-icone btn-abrir-menu" aria-label="Menu">☰</button>
       </div>
+    </header>
+    <!-- Anotar tarefa: sobe junto com a lista -->
+    <div class="topo-extra">
       <form id="form-nova-tarefa" class="nova-tarefa" autocomplete="off">
         <div class="nova-tarefa-linha">
-          <input id="nova-tarefa-texto" name="texto" placeholder="O que precisa fazer?" enterkeyhint="done">
+          <input id="nova-tarefa-texto" name="texto" placeholder="O que precisa fazer?" enterkeyhint="done" aria-label="Nova tarefa">
           <button type="submit" class="btn-adicionar" aria-label="Adicionar tarefa">＋</button>
         </div>
         <div class="chips" id="nova-tarefa-dias">
@@ -196,7 +204,7 @@
         </div>
         <input id="nova-tarefa-data" type="date" class="nova-tarefa-data" aria-label="Dia" hidden>
       </form>
-    </header>
+    </div>
     <main>
       <div id="lista-tarefas"></div>
       <button id="btn-colar-tarefas" class="btn btn-largo btn-colar">📋 Colar lista do Notas</button>
