@@ -914,3 +914,27 @@ body.rolou .fab { padding: 16px 20px; border-radius: 50%; min-width: 56px; min-h
 .menu-grupo > .menu { padding: 0 10px 10px; }
 .menu-cuidado { margin-top: 10px; border-color: #f3c4c4; background: #fff8f8; }
 .menu-cuidado > summary { color: var(--vermelho); }
+
+/* Etapa 4: acabamento */
+/* Alvos de toque de no mínimo 44px */
+.chip { min-height: 44px; display: inline-flex; align-items: center; }
+.segmento button { min-height: 44px; }
+.btn-cancelar { min-height: 44px; padding: 0 4px; }
+/* Lista da busca da venda não passa da borda (nomes longos encolhem) */
+.resultados { grid-template-columns: minmax(0, 1fr); }
+.resultado { min-width: 0; }
+.resultado .item-info { min-width: 0; }
+/* Contraste: textos claros sobre o azul ganham fundo mais escuro */
+.resumo-fiado div { background: rgb(11 58 140 / 32%); }
+.resumo-fiado small { opacity: 1; }
+.pc-pilula { background: rgb(11 58 140 / 38%); }
+.pc-seta { color: var(--azul); }
+/* Foco visível para quem usa teclado (computador) */
+:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+.topo :focus-visible, .topo-extra :focus-visible, .pc-hoje:focus-visible { outline-color: var(--branco); }
+::selection { background: #c3d5f6; color: var(--texto); }
+/* Para pedir: botões descem para baixo do texto quando falta espaço */
+.pedido { flex-wrap: wrap; }
+.pedido-info { flex: 1 1 190px; }
+.pedido-acoes { margin-left: auto; }
+.filtro-dia input, .filtros select { min-height: 44px; }

@@ -22,6 +22,15 @@ export function dataCurta(iso) {
   return `${d}/${m}/${a.slice(2)}`;
 }
 
+// "37991401400" → "(37) 99140-1400" (só para mostrar; o número guardado não muda).
+export function telefoneBonito(numero) {
+  const d = String(numero || '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '');
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  if (d.length === 9) return `${d.slice(0, 5)}-${d.slice(5)}`;
+  return String(numero || '');
+}
+
 let avisoTimer;
 export function avisar(texto) {
   const el = $('#aviso');
