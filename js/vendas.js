@@ -5,7 +5,7 @@ import {
   avisar, confirmarComMotivo, controlaEstoque,
 } from './comum.js';
 import { situacaoCliente, dividirParcelas, somarMeses } from './fiado.js';
-import { calcularVenda, calcularTroco, FORMAS_PAGAMENTO, nomeForma, resumirVendas } from './venda-calc.js';
+import { calcularVenda, calcularTroco, FORMAS_PAGAMENTO, nomeForma, resumirVendas, textoLucro } from './venda-calc.js';
 
 const estado = {
   dia: hojeISO(),
@@ -56,7 +56,7 @@ function render() {
   $('#vendas-rotulo-dia').textContent = estado.dia === hoje ? 'Vendido hoje' : `Vendido em ${dataCurta(estado.dia)}`;
   const r = resumirVendas(estado.vendas);
   $('#vendas-total').textContent = moedaCentavos(r.total);
-  $('#vendas-lucro').textContent = moedaCentavos(r.lucro);
+  $('#vendas-lucro').textContent = textoLucro(r, moedaCentavos);
   $('#vendas-quantidade').textContent = r.quantidade;
   $('#vendas-formas').innerHTML = Object.entries(r.porForma)
     .map(([f, v]) => `<span class="etiqueta">${esc(nomeForma(f))}: <strong>${moedaCentavos(v)}</strong></span>`).join('');
@@ -196,6 +196,13 @@ function sugestaoPara(p) {
   return { precoUnit: p.preco == null ? null : paraCentavos(p.preco), custoUnit: p.custo == null ? null : paraCentavos(p.custo), origem: 'Cadastro' };
 }
 
+// Preço de referência na busca: o da última venda (ou o do cadastro), para responder rápido no WhatsApp.
+function precoReferencia(p) {
+  const s = sugestaoPara(p);
+  if (!s || s.precoUnit == null) return '';
+  return `${moedaCentavos(s.precoUnit)}<small>${s.origem === 'Cadastro' ? 'no cadastro' : 'última venda'}</small>`;
+}
+
 async function mostrarResultados() {
   const termos = semAcento($('#venda-busca').value).split(/\s+/).filter(Boolean);
   if (!termos.length) { $('#venda-resultados').innerHTML = ''; return; }
@@ -221,7 +228,7 @@ async function mostrarResultados() {
         <div class="item-nome">${esc(p.nome)}</div>
         <div class="item-sub">${esc(detalheProduto(p))}</div>
       </div>
-      <div class="resultado-preco">${venda.ultimos.get(p.id) ? moedaCentavos(venda.ultimos.get(p.id).precoUnit) : ''}
+      <div class="resultado-preco">${precoReferencia(p)}
         ${controlaEstoque() ? `<small>${p.quantidade == null ? 'estoque ?' : `${p.quantidade} em estoque`}</small>` : ''}</div>
     </button></li>`).join('') : '<li class="descricao">Nenhum produto cadastrado com esse nome.</li>') + novo;
 }
@@ -242,7 +249,8 @@ function adicionarProduto(id) {
   $('#venda-resultados').innerHTML = '';
   renderCarrinho();
   atualizarVenda();
-  if (item == null) $(`#venda-carrinho [data-custo="${id}"]`)?.focus();
+  // O teclado abre no preço de venda (o custo é opcional).
+  if (item == null) $(`#venda-carrinho [data-preco="${id}"]`)?.focus();
 }
 
 async function venderProdutoNovo() {
@@ -278,14 +286,24 @@ function renderCarrinho() {
           <span class="carrinho-qtd">${i.quantidade}</span>
           <button type="button" class="btn" data-qtd="1" data-item="${i.produtoId}">＋</button>
         </div>
-        <label class="carrinho-campo">Custo R$<input data-custo="${i.produtoId}" inputmode="decimal" value="${reaisCampo(i.custoUnit)}" placeholder="0,00"></label>
-        <label class="carrinho-campo">Venda R$<input data-preco="${i.produtoId}" inputmode="decimal" value="${reaisCampo(i.precoUnit)}" placeholder="0,00"></label>
+        <label class="carrinho-campo">Preço R$<input data-preco="${i.produtoId}" inputmode="decimal" value="${reaisCampo(i.precoUnit)}" placeholder="0,00"></label>
+        <label class="carrinho-campo carrinho-campo-custo">Custo R$<input data-custo="${i.produtoId}" inputmode="decimal" value="${reaisCampo(i.custoUnit)}" placeholder="opcional"></label>
       </div>
+      ${botaoSugestao(i)}
       <div class="carrinho-linha carrinho-rodape">
         <span class="carrinho-info">${infoItem(i)}</span>
-        <strong class="carrinho-total">${i.precoUnit == null ? '—' : moedaCentavos(i.precoUnit * i.quantidade)}</strong>
+        <strong class="carrinho-total">${i.precoUnit == null ? '' : moedaCentavos(i.precoUnit * i.quantidade)}</strong>
       </div>
     </li>`).join('');
+}
+
+// Botão grande para repetir os valores da última venda do produto (só enquanto os campos estão vazios).
+function botaoSugestao(i) {
+  const s = i.sugestao;
+  if (!s || s.precoUnit == null || i.precoUnit != null || i.custoUnit != null) return '';
+  const custo = s.custoUnit != null ? ` · custo ${moedaCentavos(s.custoUnit)}` : '';
+  return `<button type="button" class="btn btn-sugestao" data-usar="${i.produtoId}">
+    ↺ Usar ${s.origem === 'Cadastro' ? 'o preço do cadastro' : 'a última venda'}: <strong>${moedaCentavos(s.precoUnit)}</strong>${custo}</button>`;
 }
 
 // Embaixo de cada produto: o lucro dele, ou a sugestão da última venda enquanto os campos estão vazios.
@@ -293,11 +311,6 @@ function infoItem(i) {
   if (i.precoUnit != null && i.custoUnit != null) {
     const lucro = (i.precoUnit - i.custoUnit) * i.quantidade;
     return `<span class="${lucro < 0 ? 'negativo' : 'lucro-item'}">Lucro ${moedaCentavos(lucro)}</span>`;
-  }
-  const s = i.sugestao;
-  if (s && i.precoUnit == null && i.custoUnit == null) {
-    const partes = [s.custoUnit != null ? `custo ${moedaCentavos(s.custoUnit)}` : '', s.precoUnit != null ? `vendeu ${moedaCentavos(s.precoUnit)}` : ''].filter(Boolean);
-    return `${s.origem}: ${partes.join(' · ')} <button type="button" class="btn-usar" data-usar="${i.produtoId}">usar</button>`;
   }
   return i.precoUnit != null ? 'Sem custo: o lucro não é calculado' : '';
 }
@@ -332,7 +345,8 @@ function atualizarVenda() {
   const partes = [];
   if (r.desconto) partes.push(`desconto ${moedaCentavos(r.desconto)}`);
   if (r.frete && venda.freteQuem === 'cliente') partes.push(`+ frete ${moedaCentavos(r.frete)}`);
-  $('#venda-subtotal').textContent = partes.length ? `Produtos ${moedaCentavos(r.subtotal)} · ${partes.join(' · ')}` : `${venda.carrinho.reduce((s, i) => s + i.quantidade, 0)} itens`;
+  const unidades = venda.carrinho.reduce((s, i) => s + i.quantidade, 0);
+  $('#venda-subtotal').textContent = partes.length ? `Produtos ${moedaCentavos(r.subtotal)} · ${partes.join(' · ')}` : `${unidades} ${unidades === 1 ? 'item' : 'itens'}`;
   $('#venda-frete-quem').hidden = !r.frete;
   $('#venda-frete-quem').querySelectorAll('[data-frete]').forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.frete === venda.freteQuem)));
   $('#venda-frete-info').hidden = !r.frete;
@@ -340,7 +354,7 @@ function atualizarVenda() {
     ? `O cliente paga ${moedaCentavos(r.frete)} de frete junto com a venda.`
     : `Você paga ${moedaCentavos(r.frete)} de frete: sai do lucro, o cliente não paga.`;
   $('#venda-total').textContent = moedaCentavos(r.total);
-  $('#venda-lucro').textContent = r.lucro == null ? (temItens ? 'Lucro: coloque o custo para calcular' : '')
+  $('#venda-lucro').textContent = r.lucro == null ? (temItens && !venda.carrinho.some((i) => !i.precoUnit) ? 'Sem custo: o lucro não é calculado' : '')
     : `Lucro estimado: ${moedaCentavos(r.lucro)}${r.itensSemCusto ? ` (${r.itensSemCusto} sem custo)` : ''}`;
   $('#venda-lucro').classList.toggle('negativo', r.lucro != null && r.lucro < 0);
 
@@ -361,8 +375,10 @@ function atualizarVenda() {
       ? dividirParcelas(r.total, n, form.vencimento.value).map((p) => `<li>Parcela ${p.parcela}: <strong>${moedaCentavos(p.valor)}</strong> — vence ${dataCurta(p.vencimento)}</li>`).join('')
       : '';
   }
-  $('#venda-finalizar').disabled = !temItens;
-  $('#venda-finalizar').textContent = !temItens ? 'Finalizar venda'
+  // Sem preço em algum produto o botão fica apagado e diz o que falta (em vez de "Finalizar R$ 0,00").
+  const faltaPreco = venda.carrinho.some((i) => !i.precoUnit);
+  $('#venda-finalizar').disabled = !temItens || faltaPreco;
+  $('#venda-finalizar').textContent = !temItens ? 'Finalizar venda' : faltaPreco ? 'Coloque o preço'
     : venda.editando ? `Salvar ${moedaCentavos(r.total)}` : `Finalizar ${moedaCentavos(r.total)}`;
 }
 
@@ -414,6 +430,7 @@ $('#venda-carrinho').addEventListener('input', (e) => {
   const li = campo.closest('.carrinho-item');
   li.querySelector('.carrinho-total').textContent = item.precoUnit == null ? '—' : moedaCentavos(item.precoUnit * item.quantidade);
   li.querySelector('.carrinho-info').innerHTML = infoItem(item);
+  li.querySelector('.btn-sugestao')?.remove();
   atualizarVenda();
 });
 $('#venda-frete-quem').addEventListener('click', (e) => {
