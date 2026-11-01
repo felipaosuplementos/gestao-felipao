@@ -1,7 +1,7 @@
 import * as db from './db.js';
 import { lerCsv, lerNumero, linhasParaDevedores, csvClientes, csvFiadoSeparado, baixarArquivo } from './planilha.js';
 import {
-  $, moedaCentavos, paraCentavos, esc, semAcento, dataHora, hojeISO, dataCurta,
+  $, moedaCentavos, telefoneBonito, paraCentavos, esc, semAcento, dataHora, hojeISO, dataCurta,
   avisar, confirmar, confirmarComMotivo, lerPreferencia, gravarPreferencia,
 } from './comum.js';
 import { situacaoCliente, dividirParcelas, somarMeses, linkWhatsApp } from './fiado.js';
@@ -177,9 +177,9 @@ function cartaoCobranca(item, grupo) {
       <div class="cobranca-acoes">
         <a class="btn" href="${link}" target="_blank" rel="noopener" data-cobrar>💬 Cobrar</a>
         ${grupo === 'semMarcar'
-    ? `<button class="btn btn-suave" data-remarcar="${c.id}">📅 Marcar dia</button>`
+    ? `<button class="btn btn-suave" data-remarcar="${c.id}">🗓️ Marcar dia</button>`
     : `<button class="btn btn-suave" data-cobrei="${c.id}">✓ Cobrei</button>
-        <button class="btn" data-remarcar="${c.id}">📅 Remarcar</button>`}
+        <button class="btn" data-remarcar="${c.id}">🗓️ Remarcar</button>`}
       </div>
     </li>`;
 }
@@ -277,7 +277,7 @@ function abrirCliente(id) {
       <div class="miniatura avatar avatar-grande">${iniciaisCliente(c.nome)}</div>
       <div>
         <h2 class="detalhe-nome">${esc(c.nome)}</h2>
-        <p class="detalhe-sub">${c.whatsapp ? esc(c.whatsapp) : 'Sem WhatsApp cadastrado'}${c.arquivado ? ' <span class="etiqueta">Arquivado</span>' : ''}</p>
+        <p class="detalhe-sub">${c.whatsapp ? esc(telefoneBonito(c.whatsapp)) : 'Sem WhatsApp cadastrado'}${c.arquivado ? ' <span class="etiqueta">Arquivado</span>' : ''}</p>
       </div>
     </div>
     ${c.observacao ? `<p class="descricao">${esc(c.observacao)}</p>` : ''}
@@ -300,7 +300,7 @@ function abrirCliente(id) {
     <div class="acoes-produto">
       ${cobrar ? `<a class="btn" href="${cobrar}" target="_blank" rel="noopener">💬 Cobrar no WhatsApp</a>`
     : zap ? `<a class="btn" href="${zap}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}
-      ${s.saldo > 0 ? `<button class="btn" data-acao="lembrete">${c.lembrete ? '📅 Mudar dia da cobrança' : '⏰ Marcar cobrança'}</button>` : ''}
+      ${s.saldo > 0 ? `<button class="btn" data-acao="lembrete">${c.lembrete ? '🗓️ Mudar dia da cobrança' : '⏰ Marcar cobrança'}</button>` : ''}
       <button class="btn" data-acao="editar">✏️ Editar</button>
     </div>
     <p class="ficha-rodape"><button class="btn-link" data-acao="${c.arquivado ? 'restaurar' : 'arquivar'}">${c.arquivado ? '♻️ Restaurar cliente' : '🗂️ Arquivar cliente'}</button></p>

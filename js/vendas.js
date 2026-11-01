@@ -282,9 +282,9 @@ function renderCarrinho() {
       </div>
       <div class="carrinho-linha">
         <div class="contador contador-pequeno">
-          <button type="button" class="btn" data-qtd="-1" data-item="${i.produtoId}">−</button>
+          <button type="button" class="btn" data-qtd="-1" data-item="${i.produtoId}" aria-label="Diminuir quantidade">−</button>
           <span class="carrinho-qtd">${i.quantidade}</span>
-          <button type="button" class="btn" data-qtd="1" data-item="${i.produtoId}">＋</button>
+          <button type="button" class="btn" data-qtd="1" data-item="${i.produtoId}" aria-label="Aumentar quantidade">＋</button>
         </div>
         <label class="carrinho-campo">Preço R$<input data-preco="${i.produtoId}" inputmode="decimal" value="${reaisCampo(i.precoUnit)}" placeholder="0,00"></label>
         <label class="carrinho-campo carrinho-campo-custo">Custo R$<input data-custo="${i.produtoId}" inputmode="decimal" value="${reaisCampo(i.custoUnit)}" placeholder="opcional"></label>

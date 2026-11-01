@@ -199,7 +199,7 @@
         <div class="chips" id="nova-tarefa-dias">
           <button type="button" class="chip" data-dia="hoje" aria-pressed="true">Hoje</button>
           <button type="button" class="chip" data-dia="amanha" aria-pressed="false">Amanhã</button>
-          <button type="button" class="chip" data-dia="outro" aria-pressed="false">📅 Outro dia</button>
+          <button type="button" class="chip" data-dia="outro" aria-pressed="false">🗓️ Outro dia</button>
           <label class="chip chip-hora">🕐 <input id="nova-tarefa-hora" type="time" aria-label="Hora (opcional)"></label>
         </div>
         <input id="nova-tarefa-data" type="date" class="nova-tarefa-data" aria-label="Dia" hidden>
@@ -553,7 +553,7 @@
         <button type="button" class="btn-icone btn-fechar" data-fechar aria-label="Fechar">✕</button>
       </div>
       <label>Nome (cliente ou venda)<input name="nome" list="venda-lista-clientes" placeholder="Ex.: Maria ou Pedido do Instagram" autocomplete="off"></label>
-      <input id="venda-busca" type="search" placeholder="🔍 Buscar produto para adicionar…" autocomplete="off">
+      <input id="venda-busca" type="search" placeholder="🔍 Buscar produto para adicionar…" autocomplete="off" aria-label="Buscar produto para adicionar">
       <ul id="venda-resultados" class="resultados"></ul>
       <ul id="venda-carrinho" class="carrinho"></ul>
       <p id="venda-carrinho-vazio" class="descricao">Busque e toque nos produtos para adicionar.</p>
@@ -617,7 +617,7 @@
       <button type="button" class="chip" data-periodo="mes" aria-pressed="true">Este mês</button>
       <button type="button" class="chip" data-periodo="passado" aria-pressed="false">Mês passado</button>
       <button type="button" class="chip" data-periodo="tres" aria-pressed="false">Últimos 3 meses</button>
-      <button type="button" class="chip" data-periodo="datas" aria-pressed="false">📅 Escolher datas</button>
+      <button type="button" class="chip" data-periodo="datas" aria-pressed="false">🗓️ Escolher datas</button>
     </div>
     <div id="rel-datas" class="duas" hidden>
       <label>De<input id="rel-de" type="date"></label>

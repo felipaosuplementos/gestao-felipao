@@ -143,12 +143,12 @@ function render() {
     </button>
 
     <button class="pc" data-ir="vendas" style="grid-area:mes">
-      ${cabecalho('📅', `Este mês · ${d.mesNome}`)}
+      ${cabecalho('🗓️', `Este mês · ${d.mesNome}`)}
       <span class="pc-numeros">
-        <span><small>Vendido</small><strong>${reais(d.mes.total)}</strong></span>
-        <span><small>Lucro</small><strong>${textoLucro(d.mes, reais)}</strong></span>
-        <span><small>Entrou no caixa</small><strong>${reais(d.caixa)}</strong></span>
-        <span><small>Ticket médio</small><strong>${reais(ticket)}</strong></span>
+        <span><small>Vendido</small><strong>${moedaCentavos(d.mes.total)}</strong></span>
+        <span><small>Lucro</small><strong>${textoLucro(d.mes, moedaCentavos)}</strong></span>
+        <span><small>Entrou no caixa</small><strong>${moedaCentavos(d.caixa)}</strong></span>
+        <span><small>Ticket médio</small><strong>${moedaCentavos(ticket)}</strong></span>
       </span>
       ${variacao() ? `<span class="pc-rodape">${variacao()}</span>` : ''}
       ${d.mes.semCusto && d.mes.comLucro ? `<span class="pc-nota">* ${d.mes.semCusto} ${d.mes.semCusto === 1 ? 'venda está' : 'vendas estão'} sem custo; o lucro delas não entra na conta</span>` : ''}
@@ -162,8 +162,8 @@ function render() {
     <button class="pc" data-ir="cobrancas" style="grid-area:fiado">
       ${cabecalho('💰', 'Fiado e cobranças')}
       <span class="pc-numeros pc-numeros-2">
-        <span><small>A receber</small><strong>${reais(d.receber)}</strong></span>
-        <span><small>Para cobrar</small><strong class="${d.vencido ? 'alerta' : ''}">${reais(d.vencido)}</strong></span>
+        <span><small>A receber</small><strong>${moedaCentavos(d.receber)}</strong></span>
+        <span><small>Para cobrar</small><strong class="${d.vencido ? 'alerta' : ''}">${moedaCentavos(d.vencido)}</strong></span>
       </span>
       ${d.receber ? `<span class="pc-medidor" role="img" aria-label="${pctVencido}% do fiado já está para cobrar"><span style="width:${pctVencido}%"></span></span>
       <span class="pc-nota">${pctVencido}% do fiado já venceu</span>` : ''}
@@ -185,7 +185,7 @@ function render() {
         <li>
           <span class="ranking-pos">${i + 1}</span>
           <span class="ranking-info">
-            <span class="ranking-linha"><span class="ranking-nome">${esc(p.nome)}</span><span class="ranking-valor">${reais(p.valor)}</span></span>
+            <span class="ranking-linha"><span class="ranking-nome">${esc(p.nome)}</span><span class="ranking-valor">${moedaCentavos(p.valor)}</span></span>
             <span class="ranking-barra"><span style="width:${Math.round((p.qtd / maiorQtd) * 100)}%"></span></span>
             <span class="ranking-qtd">${p.qtd} ${p.qtd === 1 ? 'unidade' : 'unidades'}</span>
           </span>
