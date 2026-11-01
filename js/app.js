@@ -647,6 +647,9 @@ $('#menu-controlar-estoque').addEventListener('click', async () => {
 // Produto novo que chegou (lista Para pedir): abre o cadastro com o nome e a marca preenchidos.
 document.addEventListener('cadastrar-produto', (e) => abrirFormulario({ nome: e.detail.nome, marca: e.detail.marca || '' }));
 
+// Rolou a lista: o botão ＋ vira só o círculo, para não cobrir os itens.
+addEventListener('scroll', () => document.body.classList.toggle('rolou', scrollY > 60), { passive: true });
+
 aplicarModoEstoque();
 db.pedirArmazenamentoPersistente();
 carregar();

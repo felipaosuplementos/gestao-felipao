@@ -890,3 +890,14 @@ button.pc-hoje:active { background: var(--azul-escuro); }
 .item-preco small { font-size: 12px; font-weight: 500; color: var(--texto-suave); }
 .btn:disabled, .btn[disabled] { opacity: .45; cursor: not-allowed; box-shadow: none; }
 .btn:disabled:active { transform: none; }
+
+/* Topo: só título, botões e busca ficam presos; totais e filtros sobem junto com a lista */
+.topo-extra { background: var(--azul); color: var(--branco); padding: 0 16px 12px; box-shadow: 0 2px 8px rgb(11 58 140 / 25%); }
+.topo:has(+ .topo-extra) { box-shadow: none; }
+.topo-extra > :first-child, .topo-extra .nova-tarefa { margin-top: 0; }
+.topo, .topo-extra { padding-left: max(16px, calc((100% - 688px) / 2)); padding-right: max(16px, calc((100% - 688px) / 2)); }
+@media (min-width: 900px) { #tela-inicio .topo { padding-left: max(24px, calc((100% - 1072px) / 2)); padding-right: max(24px, calc((100% - 1072px) / 2)); } }
+/* Botão ＋ flutuante: vira círculo ao rolar */
+.fab { transition: padding .2s ease-out; }
+body.rolou .fab span { display: none; }
+body.rolou .fab { padding: 16px 20px; border-radius: 50%; min-width: 56px; min-height: 56px; }
