@@ -652,7 +652,6 @@ body.com-nuvem #aviso-backup, body.com-nuvem #aviso-backup-clientes { display: n
 .carrinho-info { min-width: 0; }
 .lucro-item { color: var(--verde); font-weight: 600; }
 .carrinho-info .negativo { color: var(--vermelho); font-weight: 600; }
-.btn-usar { border: 1px solid var(--azul); background: var(--azul-claro); color: var(--azul-escuro); border-radius: 8px; padding: 4px 10px; margin-left: 4px; font-weight: 600; cursor: pointer; }
 .resultado-novo { border-style: dashed; border-color: var(--azul); }
 .resultado-novo .item-nome { white-space: normal; color: var(--azul-escuro); }
 
@@ -882,3 +881,12 @@ button.pc-hoje:active { background: var(--azul-escuro); }
 .rel-formas { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .rel-formas li { display: grid; gap: 4px; }
 .rel-forma-linha { display: flex; justify-content: space-between; gap: 10px; font-variant-numeric: tabular-nums; }
+
+/* Venda: sugestão da última venda e botão desativado */
+.btn-sugestao { width: 100%; min-height: 44px; margin-top: 8px; justify-content: flex-start; gap: 4px; flex-wrap: wrap; background: var(--azul-claro); border-color: #c3d5f6; color: var(--azul-escuro); font-size: 15px; font-weight: 600; text-align: left; }
+.btn-sugestao strong { font-weight: 800; }
+.carrinho-campo-custo input::placeholder { font-size: 15px; }
+.resultado-preco small { display: block; }
+.item-preco small { font-size: 12px; font-weight: 500; color: var(--texto-suave); }
+.btn:disabled, .btn[disabled] { opacity: .45; cursor: not-allowed; box-shadow: none; }
+.btn:disabled:active { transform: none; }

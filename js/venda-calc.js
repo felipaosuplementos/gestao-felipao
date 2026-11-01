@@ -46,6 +46,16 @@ export function resumirVendas(vendas) {
     quantidade: validas.length,
     total: validas.reduce((s, v) => s + v.total, 0),
     lucro: validas.reduce((s, v) => s + (v.lucro || 0), 0),
+    // Vendas sem custo informado (no todo ou em algum produto): o lucro delas não é conhecido.
+    semCusto: validas.filter((v) => v.lucro == null || v.itensSemCusto).length,
+    comLucro: validas.filter((v) => v.lucro != null).length,
     porForma,
   };
+}
+
+// Lucro para mostrar: "sem custo" quando nenhuma venda tem custo (nunca um zero falso);
+// com * quando parte das vendas está sem custo.
+export function textoLucro(r, formatar) {
+  if (r.quantidade && !r.comLucro) return 'sem custo';
+  return `${formatar(r.lucro)}${r.semCusto ? '*' : ''}`;
 }

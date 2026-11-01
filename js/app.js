@@ -54,7 +54,13 @@ function aplicarModoEstoque() {
 // ---------- Lista ----------
 
 async function carregar() {
-  estado.produtos = await db.listarProdutos();
+  const [produtos, vendas] = await Promise.all([db.listarProdutos(), db.listarVendas()]);
+  estado.produtos = produtos;
+  // Último preço vendido de cada produto (para mostrar na lista quando não há preço no cadastro).
+  estado.ultimoPreco = new Map();
+  for (const v of vendas.filter((x) => !x.cancelada).sort((a, b) => a.dataHora.localeCompare(b.dataHora))) {
+    for (const i of v.itens) estado.ultimoPreco.set(i.produtoId, i.precoUnit);
+  }
   estado.produtos.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR') || (a.marca || '').localeCompare(b.marca || '', 'pt-BR'));
   await carregarFotos();
   atualizarCategorias();
@@ -154,7 +160,8 @@ function render() {
         <div class="item-nome">${esc(p.nome)}</div>
         <div class="item-sub">${esc([p.marca, p.variacao, p.tamanho].filter(Boolean).join(' · ')
           || (p.cadastroNaVenda ? 'Cadastrado na venda: complete quando puder' : ''))}</div>
-        ${p.preco == null ? '' : `<div class="item-preco">${moeda(p.preco)}</div>`}
+        ${p.preco != null ? `<div class="item-preco">${moeda(p.preco)}</div>`
+    : estado.ultimoPreco?.has(p.id) ? `<div class="item-preco">${moeda(estado.ultimoPreco.get(p.id) / 100)} <small>última venda</small></div>` : ''}
       </div>
       ${seloQuantidade(p)}
     </button></li>`).join('');
