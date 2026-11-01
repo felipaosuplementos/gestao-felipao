@@ -5,7 +5,7 @@
 import * as db from './db.js';
 import { gerarCsv, baixarArquivo } from './planilha.js';
 import { $, esc, semAcento, hojeISO, dataCurta, moedaCentavos, avisar } from './comum.js';
-import { resumirVendas, nomeForma } from './venda-calc.js';
+import { resumirVendas, nomeForma, textoLucro } from './venda-calc.js';
 
 const z = (n) => String(n).padStart(2, '0');
 const isoDe = (d) => `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
@@ -117,15 +117,15 @@ function render() {
       <h3>Resumo</h3>
       <div class="rel-numeros">
         <span><small>Vendido</small><strong>${moedaCentavos(r.total)}</strong></span>
-        <span><small>Lucro${d.semCusto ? '*' : ''}</small><strong>${moedaCentavos(r.lucro)}</strong></span>
+        <span><small>Lucro</small><strong>${textoLucro(r, moedaCentavos)}</strong></span>
         <span><small>Vendas</small><strong>${r.quantidade}</strong></span>
         <span><small>Ticket médio</small><strong>${moedaCentavos(ticket)}</strong></span>
         <span><small>Entrou no caixa</small><strong>${moedaCentavos(d.caixa)}</strong></span>
         <span><small>Vendido no fiado</small><strong>${moedaCentavos(d.noFiado)}</strong></span>
       </div>
-      <p class="pc-nota">Margem de lucro: ${pct(r.lucro, r.total)}% do vendido.${d.descontos ? ` Descontos dados: ${moedaCentavos(d.descontos)}.` : ''}
+      <p class="pc-nota">${r.comLucro ? `Margem de lucro: ${pct(r.lucro, r.total)}% do vendido.` : 'Nenhuma venda tem custo informado, então o lucro não pode ser calculado.'}${d.descontos ? ` Descontos dados: ${moedaCentavos(d.descontos)}.` : ''}
         ${d.recebidoFiado ? ` Fiado recebido no período: ${moedaCentavos(d.recebidoFiado)}.` : ''}
-        ${d.semCusto ? ` * ${d.semCusto} ${d.semCusto === 1 ? 'venda está' : 'vendas estão'} sem custo em algum produto, então o lucro real é menor.` : ''}</p>
+        ${r.comLucro && d.semCusto ? ` * ${d.semCusto} ${d.semCusto === 1 ? 'venda está' : 'vendas estão'} sem custo em algum produto; o lucro delas não entra na conta.` : ''}</p>
     </section>
 
     <section class="rel-bloco">
@@ -141,7 +141,7 @@ function render() {
             <span class="vendido-nome">${esc(p.nome)}</span>
             <span class="vendido-sub">${p.qtd} un. · vendido ${moedaCentavos(p.valor)}${p.semCusto ? ' · sem custo em alguma venda' : ` · margem ${pct(p.lucro, p.valor)}%`}</span>
           </span>
-          <span class="vendido-valor"><small>lucro</small>${moedaCentavos(p.lucro)}</span>
+          <span class="vendido-valor"><small>lucro</small>${p.semCusto && !p.lucro ? 'sem custo' : moedaCentavos(p.lucro)}</span>
         </li>`).join('')}</ol>
     </section>
 

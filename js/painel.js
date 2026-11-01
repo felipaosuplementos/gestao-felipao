@@ -5,7 +5,7 @@
 import * as db from './db.js';
 import { $, esc, hojeISO, moedaCentavos } from './comum.js';
 import { situacaoCliente } from './fiado.js';
-import { resumirVendas } from './venda-calc.js';
+import { resumirVendas, textoLucro } from './venda-calc.js';
 import { dataAtalho } from './lembrete.js';
 
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -137,7 +137,7 @@ function render() {
       <span class="pc-cabeca"><span class="pc-titulo">Vendido hoje</span><span class="pc-seta" aria-hidden="true">›</span></span>
       <span class="pc-heroi">${moedaCentavos(d.hoje.total)}</span>
       <span class="pc-pilulas">
-        <span class="pc-pilula">Lucro ${moedaCentavos(d.hoje.lucro)}</span>
+        <span class="pc-pilula">Lucro ${textoLucro(d.hoje, moedaCentavos)}</span>
         <span class="pc-pilula">${d.hoje.quantidade} ${d.hoje.quantidade === 1 ? 'venda' : 'vendas'}</span>
       </span>
     </button>
@@ -146,12 +146,12 @@ function render() {
       ${cabecalho('📅', `Este mês · ${d.mesNome}`)}
       <span class="pc-numeros">
         <span><small>Vendido</small><strong>${reais(d.mes.total)}</strong></span>
-        <span><small>Lucro${d.semCusto ? '*' : ''}</small><strong>${reais(d.mes.lucro)}</strong></span>
+        <span><small>Lucro</small><strong>${textoLucro(d.mes, reais)}</strong></span>
         <span><small>Entrou no caixa</small><strong>${reais(d.caixa)}</strong></span>
         <span><small>Ticket médio</small><strong>${reais(ticket)}</strong></span>
       </span>
       ${variacao() ? `<span class="pc-rodape">${variacao()}</span>` : ''}
-      ${d.semCusto ? '<span class="pc-nota">* algumas vendas estão sem custo, então o lucro real é menor</span>' : ''}
+      ${d.mes.semCusto && d.mes.comLucro ? `<span class="pc-nota">* ${d.mes.semCusto} ${d.mes.semCusto === 1 ? 'venda está' : 'vendas estão'} sem custo; o lucro delas não entra na conta</span>` : ''}
     </button>
 
     <section class="pc" aria-label="Vendas por dia" style="grid-area:dias">
@@ -265,7 +265,7 @@ function desenharBarras(caixa, pontos, { marcarCada = 1, altura = 170 }) {
     if (!g) { dica.hidden = true; return; }
     g.classList.add('ativa');
     const p = pontos[Number(g.dataset.i)];
-    dica.innerHTML = `<strong>${esc(p.titulo)}</strong><br>Vendido ${moedaCentavos(p.total)}<br>Lucro ${moedaCentavos(p.lucro)} · ${p.quantidade} ${p.quantidade === 1 ? 'venda' : 'vendas'}`;
+    dica.innerHTML = `<strong>${esc(p.titulo)}</strong><br>Vendido ${moedaCentavos(p.total)}<br>Lucro ${textoLucro(p, moedaCentavos)} · ${p.quantidade} ${p.quantidade === 1 ? 'venda' : 'vendas'}`;
     dica.hidden = false;
     const i = Number(g.dataset.i);
     const cx = esq + faixa * i + faixa / 2;
@@ -307,7 +307,7 @@ function renderListaVendidos() {
     <span><small>Produtos</small><strong>${lista.length}</strong></span>
     <span><small>Unidades</small><strong>${soma('qtd')}</strong></span>
     <span><small>Total</small><strong>${moedaCentavos(soma('valor'))}</strong></span>
-    <span><small>Lucro${semCusto ? '*' : ''}</small><strong>${moedaCentavos(soma('lucro'))}</strong></span>`;
+    <span><small>Lucro${semCusto ? '*' : ''}</small><strong>${lista.every((p) => p.semCusto && !p.lucro) ? 'sem custo' : moedaCentavos(soma('lucro'))}</strong></span>`;
   $('#vendidos-ordem').querySelectorAll('[data-ordem]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ordem === ordemLista)));
   $('#vendidos-lista').innerHTML = lista.map((p, i) => `
     <li>
