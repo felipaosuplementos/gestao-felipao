@@ -901,3 +901,16 @@ button.pc-hoje:active { background: var(--azul-escuro); }
 .fab { transition: padding .2s ease-out; }
 body.rolou .fab span { display: none; }
 body.rolou .fab { padding: 16px 20px; border-radius: 50%; min-width: 56px; min-height: 56px; }
+
+/* Etapa 3: menos azul forte — ação de apoio em azul claro; menu em grupos */
+.btn-suave { background: var(--azul-claro); border-color: #c3d5f6; color: var(--azul-escuro); font-weight: 700; }
+.btn-link { border: 0; background: none; min-height: 44px; padding: 0 4px; color: var(--texto-suave); font: inherit; font-size: 15px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.ficha-rodape { margin: -6px 0 12px; text-align: center; }
+.menu-grupo { border: 1px solid var(--borda); border-radius: 12px; background: var(--fundo); }
+.menu-grupo > summary { list-style: none; display: flex; align-items: center; min-height: 48px; padding: 0 14px; font-weight: 700; color: var(--azul-escuro); cursor: pointer; }
+.menu-grupo > summary::-webkit-details-marker { display: none; }
+.menu-grupo > summary::after { content: "›"; margin-left: auto; font-size: 22px; transition: transform .2s ease-out; }
+.menu-grupo[open] > summary::after { transform: rotate(90deg); }
+.menu-grupo > .menu { padding: 0 10px 10px; }
+.menu-cuidado { margin-top: 10px; border-color: #f3c4c4; background: #fff8f8; }
+.menu-cuidado > summary { color: var(--vermelho); }

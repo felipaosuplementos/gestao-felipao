@@ -307,34 +307,47 @@
         <p id="menu-nuvem-info" class="menu-info"></p>
         <button class="btn" id="menu-sair">🚪 Sair desta conta</button>
       </div>
-      <button class="btn btn-primario" id="menu-relatorios">📊 Relatórios</button>
-      <p class="menu-titulo">Backup completo</p>
+      <button class="btn" id="menu-relatorios">📊 Relatórios</button>
+
+      <p class="menu-titulo">Backup e segurança</p>
       <button class="btn btn-primario" id="menu-backup-completo">💾 Baixar backup completo (tudo)</button>
+      <p id="menu-backup-info" class="menu-info"></p>
       <label class="btn">♻️ Restaurar um backup completo
         <input id="input-backup-completo" type="file" accept=".json,application/json" hidden>
       </label>
-      <p id="menu-backup-info" class="menu-info"></p>
+      <details class="menu-grupo">
+        <summary>📄 Planilhas separadas para o Excel</summary>
+        <div class="menu">
+          <button class="btn" id="menu-exportar-fiado">⬇️ Fiado (com quem já pagou)</button>
+          <button class="btn" id="menu-exportar-clientes">⬇️ Lista: quem deve e quem já pagou</button>
+          <button class="btn" id="menu-exportar-vendas">⬇️ Vendas</button>
+          <button class="btn" id="menu-exportar">⬇️ Produtos</button>
+          <button class="btn" id="menu-exportar-tarefas">⬇️ Tarefas</button>
+          <button class="btn" id="menu-exportar-pedidos">⬇️ Lista de pedidos</button>
+          <button class="btn so-estoque" id="menu-historico">⬇️ Histórico de estoque</button>
+        </div>
+      </details>
+
       <p class="menu-titulo">Produtos</p>
-      <button class="btn" id="menu-exportar">⬇️ Backup: baixar planilha de produtos</button>
-      <button class="btn" id="menu-controlar-estoque"></button>
-      <button class="btn" id="menu-exportar-pedidos">⬇️ Backup: lista de pedidos</button>
-      <button class="btn so-estoque" id="menu-historico">⬇️ Baixar histórico de estoque</button>
-      <label class="btn">⬆️ Importar planilha (CSV)
+      <button class="btn" id="menu-catalogo">📦 Carregar catálogo da loja</button>
+      <label class="btn">⬆️ Importar planilha de produtos (CSV)
         <input id="input-planilha" type="file" accept=".csv,text/csv,text/plain" hidden>
       </label>
-      <button class="btn" id="menu-catalogo">📦 Carregar catálogo da loja</button>
       <button class="btn" id="menu-arquivados">🗂️ Ver produtos arquivados</button>
+      <button class="btn" id="menu-controlar-estoque"></button>
+
       <p class="menu-titulo">Clientes e fiado</p>
-      <button class="btn" id="menu-exportar-fiado">⬇️ Backup: baixar planilha do fiado</button>
-      <button class="btn" id="menu-exportar-clientes">⬇️ Baixar lista: quem deve e quem já pagou</button>
       <button class="btn" id="menu-texto-cobranca">✏️ Texto da mensagem de cobrança</button>
       <button class="btn" id="menu-importar-devedores">⬆️ Importar planilha de devedores</button>
       <button class="btn" id="menu-clientes-arquivados">🗂️ Ver clientes arquivados</button>
-      <button class="btn btn-perigo-claro" id="menu-fiado-zero">🧹 Apagar o fiado e começar do zero</button>
-      <p class="menu-titulo">Vendas</p>
-      <button class="btn" id="menu-exportar-vendas">⬇️ Backup: baixar planilha de vendas</button>
-      <p class="menu-titulo">Tarefas</p>
-      <button class="btn" id="menu-exportar-tarefas">⬇️ Backup: baixar planilha de tarefas</button>
+
+      <details class="menu-grupo menu-cuidado">
+        <summary>⚠️ Opções de cuidado</summary>
+        <div class="menu">
+          <p class="menu-info">Apaga dados. Use só se tiver certeza (o sistema pede confirmação e baixa um backup antes).</p>
+          <button class="btn btn-perigo-claro" id="menu-fiado-zero">🧹 Apagar o fiado e começar do zero</button>
+        </div>
+      </details>
       <p id="menu-info" class="menu-info"></p>
     </div>
   </dialog>

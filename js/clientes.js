@@ -177,8 +177,8 @@ function cartaoCobranca(item, grupo) {
       <div class="cobranca-acoes">
         <a class="btn" href="${link}" target="_blank" rel="noopener" data-cobrar>💬 Cobrar</a>
         ${grupo === 'semMarcar'
-    ? `<button class="btn btn-primario" data-remarcar="${c.id}">📅 Marcar dia</button>`
-    : `<button class="btn btn-primario" data-cobrei="${c.id}">✓ Cobrei</button>
+    ? `<button class="btn btn-suave" data-remarcar="${c.id}">📅 Marcar dia</button>`
+    : `<button class="btn btn-suave" data-cobrei="${c.id}">✓ Cobrei</button>
         <button class="btn" data-remarcar="${c.id}">📅 Remarcar</button>`}
       </div>
     </li>`;
@@ -289,8 +289,12 @@ function abrirCliente(id) {
       ${c.lembrete ? `<div class="lembrete-caixa">${esc(textoLembrete(c))}
         <button class="btn-texto" data-acao="lembrete-feito">✓ Cobrei</button></div>` : ''}
       <div class="estoque-botoes">
-        <button class="btn btn-primario" data-lanc="fiado">＋ Fiado</button>
-        <button class="btn" data-lanc="pagamento" ${s.saldo ? '' : 'disabled'}>💵 Recebi pagamento</button>
+        ${s.saldo > 0
+    // Quem deve: receber o pagamento é a ação principal.
+    ? `<button class="btn btn-primario" data-lanc="pagamento">💵 Recebi pagamento</button>
+        <button class="btn" data-lanc="fiado">＋ Fiado</button>`
+    : `<button class="btn btn-primario" data-lanc="fiado">＋ Fiado</button>
+        <button class="btn" data-lanc="pagamento" disabled>💵 Recebi pagamento</button>`}
       </div>
     </div>
     <div class="acoes-produto">
@@ -298,8 +302,8 @@ function abrirCliente(id) {
     : zap ? `<a class="btn" href="${zap}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}
       ${s.saldo > 0 ? `<button class="btn" data-acao="lembrete">${c.lembrete ? '📅 Mudar dia da cobrança' : '⏰ Marcar cobrança'}</button>` : ''}
       <button class="btn" data-acao="editar">✏️ Editar</button>
-      <button class="btn" data-acao="${c.arquivado ? 'restaurar' : 'arquivar'}">${c.arquivado ? '♻️ Restaurar' : '🗂️ Arquivar'}</button>
     </div>
+    <p class="ficha-rodape"><button class="btn-link" data-acao="${c.arquivado ? 'restaurar' : 'arquivar'}">${c.arquivado ? '♻️ Restaurar cliente' : '🗂️ Arquivar cliente'}</button></p>
     ${aVencer.length ? `<h3>A vencer</h3><ul class="historico">${aVencer.map((d) => `
       <li><div>${dataCurta(d.vencimento || d.data)}${d.parcela ? ` · parcela ${esc(d.parcela)}` : ''}<small>${esc(d.descricao || '')}</small></div>
       <span class="dif">${moedaCentavos(d.restante)}</span></li>`).join('')}</ul>` : ''}
