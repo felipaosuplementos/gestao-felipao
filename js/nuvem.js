@@ -4,7 +4,7 @@
 // Os dados ficam em usuarios/{conta}/{loja} (produtos, fotos, clientes, lançamentos, vendas, tarefas, pedidos…).
 
 import * as db from './db.js';
-import { $, avisar, confirmar, lerPreferencia, gravarPreferencia } from './comum.js';
+import { $, avisar, confirmar, lerPreferencia, gravarPreferencia, dataUrlParaBlob } from './comum.js';
 import { firebaseConfig, emailPermitido } from './config-nuvem.js';
 
 const params = new URLSearchParams(location.search);
@@ -23,6 +23,14 @@ let idAparelho = lerPreferencia('idAparelho');
 if (!idAparelho) { idAparelho = db.novoId(); gravarPreferencia('idAparelho', idAparelho); }
 
 const chave = (nome) => `nuvem.${estado.usuario.uid}.${nome}`;
+
+// Aparelho que já entrou com a conta Google: daqui em diante só abre com login
+// (some o "usar só neste aparelho", para ninguém ver os dados guardados aqui sem entrar).
+const jaUsouConta = () => !!lerPreferencia('contaGoogle');
+if (jaUsouConta()) {
+  $('#tela-login').hidden = false;
+  $('#btn-sem-nuvem').hidden = true;
+}
 
 // ---------- Situação (aparece no topo das telas) ----------
 
@@ -94,10 +102,6 @@ function blobParaTexto(blob) {
     r.readAsDataURL(blob);
   });
 }
-async function textoParaBlob(texto) {
-  return (await fetch(texto)).blob();
-}
-
 function idDo(m) {
   if (m.loja === 'fotos' || m.removido) return String(m.chave);
   return String(m.valor.id);
@@ -161,7 +165,7 @@ function ouvir(loja) {
       if (_sync) maior = Math.max(maior, _sync.toMillis());
       if (_origem === idAparelho) continue; // já está aqui
       if (_excluido) itens.push({ loja, chave: d.id, removido: true });
-      else if (loja === 'fotos') itens.push({ loja, chave: d.id, valor: await textoParaBlob(dados.dados) });
+      else if (loja === 'fotos') itens.push({ loja, chave: d.id, valor: dataUrlParaBlob(dados.dados) });
       else itens.push({ loja, valor: dados });
     }
     if (itens.length) {
@@ -242,6 +246,7 @@ function mostrarLogin(mensagem = '') {
   $('#tela-login').hidden = false;
   $('#login-erro').textContent = mensagem;
   $('#login-email').textContent = emailLiberado || 'a sua conta Google';
+  $('#btn-sem-nuvem').hidden = jaUsouConta();
 }
 
 async function aoEntrar(usuario) {
@@ -252,6 +257,7 @@ async function aoEntrar(usuario) {
   }
   estado.usuario = usuario;
   estado.semNuvem = false;
+  gravarPreferencia('contaGoogle', new Date().toISOString());
   $('#tela-login').hidden = true;
   document.body.classList.add('com-nuvem');
   mostrarSituacao('entrando');
@@ -316,16 +322,44 @@ async function iniciar() {
     mostrarLogin();
   });
   $('#menu-sair').addEventListener('click', async () => {
-    const ok = await confirmar('Sair da conta?', 'Para voltar a usar o sistema neste aparelho, é preciso entrar de novo com a sua conta Google. Nada é apagado da nuvem.', 'Sair', false);
-    if (!ok) return;
     $('#dlg-menu').close();
+    const escolha = await escolher('Sair da conta?',
+      `Para voltar a usar o sistema neste aparelho, é preciso entrar de novo com a sua conta Google. Nada é apagado da nuvem.<br><br>
+       Se este aparelho não é seu (ou foi perdido/emprestado), escolha <strong>apagar deste aparelho</strong>: os dados somem só daqui e voltam quando você entrar de novo.`,
+      [
+        { rotulo: 'Sair e manter os dados aqui', valor: 'manter' },
+        { rotulo: '🔒 Sair e apagar deste aparelho', valor: 'apagar' },
+        { rotulo: 'Cancelar', valor: null, principal: true },
+      ]);
+    if (!escolha) return;
+    if (escolha === 'apagar' && (estado.pendentes > 0 || !navigator.onLine)) {
+      avisar(estado.pendentes > 0
+        ? 'Ainda tem coisa sendo enviada para a nuvem. Espere aparecer "☁️ Sincronizado" e tente de novo.'
+        : 'Sem internet: conecte antes de apagar, para garantir que tudo já está na nuvem.');
+      return;
+    }
+    const uid = estado.usuario?.uid;
     await fb.signOut(estado.auth);
+    if (escolha === 'apagar') await apagarDesteAparelho(uid);
   });
 
   fb.onAuthStateChanged(estado.auth, (usuario) => {
     if (usuario) aoEntrar(usuario).catch((e) => { console.error(e); mostrarSituacao('erro'); });
     else aoSair();
   });
+}
+
+// Apaga a cópia local (sistema + memória da nuvem) e recomeça do zero na próxima entrada.
+async function apagarDesteAparelho(uid) {
+  try {
+    await db.limparTudoLocal();
+    // Esquece o que já tinha recebido e ganha uma identidade nova (senão ignoraria o que ele mesmo enviou).
+    Object.keys(localStorage).filter((k) => k.startsWith(`felipao.nuvem.${uid}.`) || k === 'felipao.idAparelho')
+      .forEach((k) => localStorage.removeItem(k));
+    await estado.fb.terminate(estado.fs);
+    await estado.fb.clearIndexedDbPersistence(estado.fs);
+  } catch (e) { console.error(e); }
+  location.reload();
 }
 
 // Informações da conta no menu.

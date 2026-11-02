@@ -1,6 +1,22 @@
 // Funções usadas por todas as telas.
 
+// Segurança: o sistema não pode ser aberto "dentro" de outro site (golpe de clique escondido).
+if (window.top !== window.self) {
+  try { window.top.location.replace(window.self.location.href); } catch { /* bloqueado */ }
+  document.documentElement.replaceChildren();
+}
+
 export const $ = (sel) => document.querySelector(sel);
+
+// Converte uma foto em texto ("data:image/...;base64,...") de volta em arquivo, sem usar a internet.
+export function dataUrlParaBlob(texto) {
+  const [cabeca, base64 = ''] = String(texto).split(',', 2);
+  const tipo = (cabeca.match(/^data:([^;,]+)/) || [])[1] || 'image/jpeg';
+  const binario = atob(base64);
+  const bytes = new Uint8Array(binario.length);
+  for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+  return new Blob([bytes], { type: tipo });
+}
 
 export const moeda = (n) => (n == null ? '—' : n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
 // Valores de dinheiro do fiado ficam guardados em centavos (número inteiro) para não errar contas.
