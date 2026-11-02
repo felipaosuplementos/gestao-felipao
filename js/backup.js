@@ -4,7 +4,7 @@
 
 import * as db from './db.js';
 import { baixarArquivo } from './planilha.js';
-import { $, dataHora, avisar, confirmarComMotivo, semAcento, lerPreferencia } from './comum.js';
+import { $, dataHora, avisar, confirmarComMotivo, semAcento, lerPreferencia, dataUrlParaBlob } from './comum.js';
 
 const FORMATO = 1;
 const DIAS_LEMBRAR = 7;
@@ -19,7 +19,7 @@ const paraTexto = (blob) => new Promise((ok, erro) => {
   r.onerror = () => erro(r.error);
   r.readAsDataURL(blob);
 });
-const paraBlob = async (texto) => (await fetch(texto)).blob();
+const paraBlob = async (texto) => dataUrlParaBlob(texto);
 
 const resumo = (contagem) => Object.entries(contagem).filter(([, n]) => n)
   .map(([loja, n]) => `${n} ${NOMES[loja] || loja}`).join(', ');

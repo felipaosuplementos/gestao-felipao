@@ -61,7 +61,11 @@ Sistema de gestão da Felipão Suplementos
 - Cada aparelho guarda uma cópia e **funciona sem internet**. O que for feito offline sobe sozinho quando a conexão voltar.
 - Se o Chrome for limpo ou o aparelho trocado, é só entrar de novo com a conta Google que tudo volta.
 - Só a conta autorizada lê e grava os dados (regras em `firestore.rules`).
-- Configuração em `js/config-nuvem.js`; regras do Firestore em `firestore.rules`. Se o login falhar, dá para "Usar só neste aparelho por enquanto".
+- Configuração em `js/config-nuvem.js`; regras do Firestore em `firestore.rules` (só aceitam as partes do sistema: produtos, clientes, vendas…).
+- Depois que o aparelho entra com a conta Google, ele **só abre com login** (o "Usar só neste aparelho" some), para ninguém ver os dados guardados ali sem entrar.
+- **Menu → Sair da conta** pergunta se quer **apagar deste aparelho** (computador emprestado, celular perdido). Só apaga deste aparelho, e só se tudo já estiver na nuvem; ao entrar de novo, tudo volta.
+- O site só roda o próprio código e o do login do Google/Firebase (Content-Security-Policy no `index.html`) e não abre dentro de outro site.
+- As planilhas exportadas não deixam texto virar fórmula no Excel.
 
 Os dados ficam guardados no próprio celular (funciona sem internet). Faça backup com frequência.
 
