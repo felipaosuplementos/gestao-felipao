@@ -26,7 +26,9 @@ export function lerCsv(texto) {
     } else campo += c;
   }
   if (campo !== '' || linha.length) { linha.push(campo); linhas.push(linha); }
-  return linhas.filter((l) => l.some((v) => v.trim() !== ''));
+  // Tira a proteção contra fórmula que o próprio sistema põe ao exportar (ver celula()).
+  return linhas.filter((l) => l.some((v) => v.trim() !== ''))
+    .map((l) => l.map((v) => (/^'[=+\-@]/.test(v) ? v.slice(1) : v)));
 }
 
 const semAcento = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
@@ -115,9 +117,14 @@ export function linhasParaProdutos(linhas) {
   return { itens, erros };
 }
 
+// Texto que começa com = + - @ vira fórmula no Excel (pode ser usado para golpe):
+// coloca um ' na frente para ficar só texto. Números negativos (-12,50) continuam números.
+const pareceFormula = (s) => /^[=+@\t\r]/.test(s) || (/^-/.test(s) && !/^-\d+([.,]\d+)?%?$/.test(s));
+
 function celula(v) {
   if (v == null) return '';
-  const s = String(v);
+  let s = String(v);
+  if (typeof v === 'string' && pareceFormula(s)) s = `'${s}`;
   return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
