@@ -4,7 +4,7 @@
 // Os dados ficam em usuarios/{conta}/{loja} (produtos, fotos, clientes, lançamentos, vendas, tarefas, pedidos…).
 
 import * as db from './db.js';
-import { $, avisar, confirmar, lerPreferencia, gravarPreferencia, dataUrlParaBlob } from './comum.js';
+import { $, esc, avisar, confirmar, lerPreferencia, gravarPreferencia, dataUrlParaBlob } from './comum.js';
 import { firebaseConfig, emailPermitido } from './config-nuvem.js';
 
 const params = new URLSearchParams(location.search);
@@ -44,6 +44,14 @@ const TEXTOS = {
   erro: '⚠️ Erro na sincronização',
 };
 
+// Último problema com a nuvem (aparece ao tocar no aviso do topo).
+const problemas = { ultimo: null, envioFalhou: false };
+const lotesEsperando = new Map(); // lote → { lojas, desde, qtd }
+function anotarProblema(onde, e) {
+  console.error(onde, e);
+  problemas.ultimo = { onde, quando: new Date(), codigo: e?.code || '', mensagem: String(e?.message || e).slice(0, 300) };
+}
+
 // Desde quando tem envio esperando a nuvem responder.
 let enviandoDesde = null;
 const DEMORA = 15000;
@@ -61,7 +69,7 @@ function mostrarSituacao(situacao) {
 }
 function atualizarSituacao() {
   if (!estado.usuario) return;
-  mostrarSituacao(navigator.onLine ? 'ok' : 'offline');
+  mostrarSituacao(!navigator.onLine ? 'offline' : problemas.envioFalhou ? 'erro' : 'ok');
 }
 addEventListener('online', () => { atualizarSituacao(); reconectar(); });
 addEventListener('offline', atualizarSituacao);
@@ -78,7 +86,7 @@ async function reconectar() {
     await estado.fb.disableNetwork(estado.fs);
     await estado.fb.enableNetwork(estado.fs);
   } catch (e) {
-    console.error(e);
+    anotarProblema('Reconectar', e);
   }
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) reconectar(); });
@@ -90,7 +98,32 @@ setInterval(() => {
   if (Date.now() - enviandoDesde > DEMORA && Date.now() - ultimaReconexao > 30000) reconectar();
 }, 5000);
 // Tocar no aviso do topo também refaz a ligação.
-document.addEventListener('click', (e) => { if (e.target.closest('.sync-status')) { ultimaReconexao = 0; reconectar(); } });
+// e mostra os detalhes (o que está esperando e o último problema), para descobrir o que houve.
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.sync-status') || !estado.usuario) return;
+  ultimaReconexao = 0;
+  reconectar();
+  mostrarDetalhes();
+});
+
+async function mostrarDetalhes() {
+  const hora = (d) => d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const esperando = [...lotesEsperando.values()];
+  const versao = await fetch('sw.js').then((r) => r.text()).then((t) => (t.match(/felipao-v\d+/) || ['?'])[0]).catch(() => '?');
+  const linhas = [
+    `<strong>Situação:</strong> ${esc(document.querySelector('.sync-status')?.textContent || '')}`,
+    `<strong>Internet:</strong> ${navigator.onLine ? 'sim' : 'não'}`,
+    `<strong>Esperando a nuvem:</strong> ${esperando.length
+      ? esperando.map((l) => `${l.qtd} ${l.qtd === 1 ? 'registro' : 'registros'} de ${esc(l.lojas.join(', '))} desde ${hora(l.desde)}`).join('; ')
+      : 'nada'}`,
+    `<strong>Último problema:</strong> ${problemas.ultimo
+      ? `${esc(problemas.ultimo.onde)} às ${hora(problemas.ultimo.quando)}: ${esc(problemas.ultimo.codigo)} ${esc(problemas.ultimo.mensagem)}`
+      : 'nenhum'}`,
+    `<strong>Conta:</strong> ${esc(estado.usuario?.email || '')} · <strong>Versão:</strong> ${esc(versao)}`,
+    '<br>Já pedi para refazer a ligação com a nuvem. Se continuar parado, tire um print desta tela e mande para o suporte.',
+  ];
+  await escolher('Sincronização', linhas.join('<br>'), [{ rotulo: 'Fechar', valor: true, principal: true }]);
+}
 
 // ---------- Conversões ----------
 
@@ -128,12 +161,15 @@ async function enviar(mudancas) {
   for (let i = 0; i < mudancas.length; i += 400) {
     const lote = writeBatch(estado.fs);
     for (const m of mudancas.slice(i, i + 400)) lote.set(refDoc(m.loja, idDo(m)), await paraNuvem(m));
+    const parte = mudancas.slice(i, i + 400);
+    lotesEsperando.set(lote, { lojas: [...new Set(parte.map((m) => m.loja))], qtd: parte.length, desde: new Date() });
     estado.pendentes++;
     atualizarSituacao();
     // Sem internet, o Firebase guarda e envia sozinho quando a conexão voltar.
     lote.commit()
-      .catch((e) => { console.error(e); mostrarSituacao('erro'); })
-      .finally(() => { estado.pendentes--; atualizarSituacao(); });
+      .then(() => { problemas.envioFalhou = false; })
+      .catch((e) => { anotarProblema(`Envio (${lotesEsperando.get(lote)?.lojas.join(', ')})`, e); problemas.envioFalhou = true; })
+      .finally(() => { lotesEsperando.delete(lote); estado.pendentes--; atualizarSituacao(); });
   }
 }
 
@@ -173,7 +209,7 @@ function ouvir(loja) {
       document.dispatchEvent(new CustomEvent('dados-mudaram'));
     }
     if (maior > desde) gravarPreferencia(chave(`ultimo.${loja}`), String(maior));
-  }, (erro) => { console.error(erro); mostrarSituacao('erro'); });
+  }, (erro) => { anotarProblema(`Recebimento (${loja})`, erro); mostrarSituacao('erro'); });
 }
 
 // ---------- Primeira vez neste aparelho ----------
