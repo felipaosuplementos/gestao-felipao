@@ -60,6 +60,8 @@ Sistema de gestão da Felipão Suplementos
 - Entrada com a **conta Google** do Felipão. Os dados ficam guardados na nuvem (Firebase) e aparecem no computador e no celular.
 - Cada aparelho guarda uma cópia e **funciona sem internet**. O que for feito offline sobe sozinho quando a conexão voltar.
 - Se o Chrome for limpo ou o aparelho trocado, é só entrar de novo com a conta Google que tudo volta.
+- Se a ligação que recebe as mudanças cair, ela é religada sozinha em segundos.
+- **Conferência com a nuvem**: ao abrir o app (e ao voltar para ele, no máximo a cada 30 min) o sistema compara tudo com a nuvem e acerta as diferenças — vale a versão mudada por último (cada registro guarda `mudouEm`). O que for substituído no aparelho fica guardado numa cópia (vai no backup completo). Tocando no aviso do topo dá para ver a última conferência e **Conferir tudo com a nuvem agora**.
 - Só a conta autorizada lê e grava os dados (regras em `firestore.rules`).
 - Configuração em `js/config-nuvem.js`; regras do Firestore em `firestore.rules` (só aceitam as partes do sistema: produtos, clientes, vendas…).
 - Depois que o aparelho entra com a conta Google, ele **só abre com login** (o "Usar só neste aparelho" some), para ninguém ver os dados guardados ali sem entrar.
