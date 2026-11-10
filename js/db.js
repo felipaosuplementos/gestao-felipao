@@ -80,7 +80,14 @@ function escrever(db, lojas) {
     const loja = abrirLoja(nome);
     return new Proxy(loja, {
       get(alvo, prop) {
-        if (prop === 'put') return (valor, chave) => { mudancas.push({ loja: nome, valor, chave }); return alvo.put(valor, chave); };
+        if (prop === 'put') {
+          return (valor, chave) => {
+            // Marca quando este registro mudou (a conferência com a nuvem usa para saber qual versão é a mais nova).
+            if (valor && typeof valor === 'object' && !(valor instanceof Blob)) valor = { ...valor, mudouEm: new Date().toISOString() };
+            mudancas.push({ loja: nome, valor, chave });
+            return alvo.put(valor, chave);
+          };
+        }
         if (prop === 'delete') return (chave) => { mudancas.push({ loja: nome, chave, removido: true }); return alvo.delete(chave); };
         const v = alvo[prop];
         return typeof v === 'function' ? v.bind(alvo) : v;
