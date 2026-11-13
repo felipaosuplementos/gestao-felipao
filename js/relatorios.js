@@ -12,8 +12,11 @@ const isoDe = (d) => `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())
 const reaisPlanilha = (c) => (c / 100).toFixed(2).replace('.', ',');
 const pct = (parte, todo) => (todo ? Math.round((parte / todo) * 100) : 0);
 
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
 const estado = {
   periodo: 'mes',
+  mesRef: null, // período "um mês escolhido" (vindo do gráfico do Painel)
   de: null,
   ate: null,
   ordemProdutos: 'lucro',
@@ -29,6 +32,11 @@ function datasDoPeriodo() {
   if (estado.periodo === 'mes') return [isoDe(new Date(a, m, 1)), hojeISO()];
   if (estado.periodo === 'passado') return [isoDe(new Date(a, m - 1, 1)), isoDe(new Date(a, m, 0))];
   if (estado.periodo === 'tres') return [isoDe(new Date(a, m - 2, 1)), hojeISO()];
+  if (estado.periodo === 'umMes') {
+    const ref = estado.mesRef;
+    const fim = isoDe(new Date(ref.getFullYear(), ref.getMonth() + 1, 0));
+    return [isoDe(ref), fim < hojeISO() ? fim : hojeISO()];
+  }
   return [estado.de || hojeISO(), estado.ate || hojeISO()];
 }
 
@@ -83,8 +91,26 @@ async function carregar() {
     formas.set(v.forma, f);
   }
 
+  // Melhor dia do período.
+  const porDia = new Map();
+  for (const v of validas) porDia.set(v.dia, (porDia.get(v.dia) || 0) + v.total);
+  const melhorDia = [...porDia].sort((x, y) => y[1] - x[1])[0] || null;
+
+  // Comparação com o mês anterior (quando o período é um mês): os mesmos dias do mês anterior.
+  let comparacao = null;
+  if (de.endsWith('-01') && de.slice(0, 7) === ate.slice(0, 7)) {
+    const [ano, mes] = de.split('-').map(Number);
+    const fimAnt = new Date(ano, mes - 1, 0);
+    const deAnt = isoDe(new Date(ano, mes - 2, 1));
+    const ateAnt = isoDe(new Date(ano, mes - 2, Math.min(Number(ate.slice(8)), fimAnt.getDate())));
+    const anteriores = (await db.listarVendas(deAnt, ateAnt)).filter((v) => !v.cancelada);
+    const ra = resumirVendas(anteriores);
+    const mesCompleto = ate === isoDe(new Date(ano, mes, 0));
+    comparacao = { nome: MESES[fimAnt.getMonth()], total: ra.total, quantidade: ra.quantidade, mesmosDias: !mesCompleto };
+  }
+
   estado.dados = {
-    de, ate, resumo: r,
+    de, ate, resumo: r, melhorDia, comparacao, dias: porDia.size,
     descontos: validas.reduce((s, v) => s + (v.desconto || 0), 0),
     caixa: naHora + recebidoFiado, recebidoFiado, noFiado,
     semCusto: validas.filter((v) => v.lucro == null || v.itensSemCusto).length,
@@ -105,6 +131,16 @@ const ORDENS = {
   margem: (x, y) => pct(y.lucro, y.valor) - pct(x.lucro, x.valor) || y.lucro - x.lucro,
 };
 
+function comparar(d) {
+  const c = d.comparacao;
+  if (!c) return '';
+  if (!c.total) return `<p class="pc-comparacao"><span>Sem vendas ${c.mesmosDias ? 'no mesmo período de' : 'em'} ${c.nome} para comparar.</span></p>`;
+  const dif = Math.round(((d.resumo.total - c.total) / c.total) * 100);
+  const classe = dif > 0 ? 'sobe' : dif < 0 ? 'desce' : '';
+  return `<p class="pc-comparacao"><span class="pc-delta ${classe}">${dif > 0 ? '▲' : dif < 0 ? '▼' : '='} ${Math.abs(dif)}%</span>
+    <span>em relação a ${c.nome}${c.mesmosDias ? ' (mesmos dias)' : ''}: ${moedaCentavos(c.total)} em ${c.quantidade} ${c.quantidade === 1 ? 'venda' : 'vendas'}</span></p>`;
+}
+
 function render() {
   const d = estado.dados;
   const r = d.resumo;
@@ -123,6 +159,8 @@ function render() {
         <span><small>Entrou no caixa</small><strong>${moedaCentavos(d.caixa)}</strong></span>
         <span><small>Vendido no fiado</small><strong>${moedaCentavos(d.noFiado)}</strong></span>
       </div>
+      ${comparar(d)}
+      ${d.melhorDia ? `<p class="pc-nota">Melhor dia: <strong>${dataCurta(d.melhorDia[0])}</strong> (${moedaCentavos(d.melhorDia[1])}) · vendeu em ${d.dias} ${d.dias === 1 ? 'dia' : 'dias'}.</p>` : ''}
       <p class="pc-nota">${r.comLucro ? `Margem de lucro: ${pct(r.lucro, r.total)}% do vendido.` : 'Nenhuma venda tem custo informado, então o lucro não pode ser calculado.'}${d.descontos ? ` Descontos dados: ${moedaCentavos(d.descontos)}.` : ''}
         ${d.recebidoFiado ? ` Fiado recebido no período: ${moedaCentavos(d.recebidoFiado)}.` : ''}
         ${r.comLucro && d.semCusto ? ` * ${d.semCusto} ${d.semCusto === 1 ? 'venda está' : 'vendas estão'} sem custo em algum produto; o lucro delas não entra na conta.` : ''}</p>
@@ -193,18 +231,49 @@ function baixar(qual) {
 
 // ---------- Eventos ----------
 
+function mostrarPeriodo() {
+  $('#rel-periodos').querySelectorAll('[data-periodo]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.periodo === estado.periodo)));
+  $('#rel-datas').hidden = estado.periodo !== 'datas';
+  $('#rel-mes-nav').hidden = estado.periodo !== 'umMes';
+  if (estado.periodo === 'umMes') {
+    const ref = estado.mesRef;
+    $('#rel-mes-nome').textContent = `${MESES[ref.getMonth()][0].toUpperCase()}${MESES[ref.getMonth()].slice(1)} de ${ref.getFullYear()}`;
+    const hoje = new Date();
+    $('#rel-mes-nav [data-mes="1"]').disabled = ref.getFullYear() === hoje.getFullYear() && ref.getMonth() === hoje.getMonth();
+  }
+}
+
 $('#menu-relatorios').addEventListener('click', async () => {
   $('#dlg-menu').close();
+  if (estado.periodo === 'umMes') estado.periodo = 'mes';
+  mostrarPeriodo();
   $('#dlg-relatorios').showModal();
   await carregar();
+});
+
+// Abre o resumo completo de um mês (ex.: tocando no mês no gráfico do Painel).
+export async function abrirMes(ano, mes) {
+  estado.periodo = 'umMes';
+  estado.mesRef = new Date(ano, mes, 1);
+  mostrarPeriodo();
+  $('#rel-conteudo').innerHTML = '<p class="tarefas-vazio">Carregando…</p>';
+  $('#dlg-relatorios').showModal();
+  await carregar();
+}
+
+$('#rel-mes-nav').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-mes]');
+  if (!b || b.disabled) return;
+  estado.mesRef = new Date(estado.mesRef.getFullYear(), estado.mesRef.getMonth() + Number(b.dataset.mes), 1);
+  mostrarPeriodo();
+  carregar();
 });
 
 $('#rel-periodos').addEventListener('click', (e) => {
   const b = e.target.closest('[data-periodo]');
   if (!b) return;
   estado.periodo = b.dataset.periodo;
-  $('#rel-periodos').querySelectorAll('[data-periodo]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-  $('#rel-datas').hidden = estado.periodo !== 'datas';
+  mostrarPeriodo();
   if (estado.periodo === 'datas') {
     const [de, ate] = datasDoPeriodo();
     $('#rel-de').value = estado.de || de;

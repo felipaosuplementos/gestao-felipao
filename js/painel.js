@@ -7,6 +7,7 @@ import { $, esc, hojeISO, moedaCentavos } from './comum.js';
 import { situacaoCliente } from './fiado.js';
 import { resumirVendas, textoLucro } from './venda-calc.js';
 import { dataAtalho } from './lembrete.js';
+import { abrirMes } from './relatorios.js';
 
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const z = (n) => String(n).padStart(2, '0');
@@ -83,7 +84,7 @@ async function carregar() {
     const prefixo = `${ref.getFullYear()}-${z(ref.getMonth() + 1)}`;
     const r = resumirVendas(validas.filter((v) => v.dia.startsWith(prefixo)));
     const nome = MESES[ref.getMonth()];
-    porMes.push({ rotulo: nome.slice(0, 3), titulo: `${nome[0].toUpperCase()}${nome.slice(1)}${k === 0 ? ' (até hoje)' : ''}`, ...r, destaque: k === 0 });
+    porMes.push({ ano: ref.getFullYear(), mes: ref.getMonth(), rotulo: nome.slice(0, 3), titulo: `${nome[0].toUpperCase()}${nome.slice(1)}${k === 0 ? ' (até hoje)' : ''}`, ...r, destaque: k === 0 });
   }
 
   dados = {
@@ -197,11 +198,12 @@ function render() {
     <section class="pc" aria-label="Últimos 6 meses" style="grid-area:meses">
       ${cabecalho('📈', 'Últimos 6 meses', false)}
       <div class="grafico" id="grafico-meses"></div>
+      <span class="pc-nota">Toque num mês para ver o resumo completo dele.</span>
     </section>
   `;
   const alto = window.innerWidth >= 900 ? 220 : 170;
   desenharBarras($('#grafico-dias'), d.porDia, { marcarCada: window.innerWidth >= 900 ? 1 : 5, altura: alto });
-  desenharBarras($('#grafico-meses'), d.porMes, { altura: alto });
+  desenharBarras($('#grafico-meses'), d.porMes, { altura: alto, aoEscolher: (p) => abrirMes(p.ano, p.mes) });
 }
 
 // ---------- Gráfico de barras (SVG, uma cor, toque mostra o valor) ----------
@@ -213,7 +215,7 @@ function topoRedondo(max) {
   return [1, 2, 2.5, 5, 10].map((f) => f * p).find((v) => v >= max);
 }
 
-function desenharBarras(caixa, pontos, { marcarCada = 1, altura = 170 }) {
+function desenharBarras(caixa, pontos, { marcarCada = 1, altura = 170, aoEscolher = null }) {
   const largura = Math.max(260, caixa.clientWidth || 320);
   const esq = 44; const dir = 4; const topo = 22; const base = 24;
   const areaL = largura - esq - dir;
@@ -277,7 +279,13 @@ function desenharBarras(caixa, pontos, { marcarCada = 1, altura = 170 }) {
   caixa.addEventListener('pointerover', (e) => { if (e.pointerType === 'mouse') mostrar(e.target.closest('.barra')); });
   caixa.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') mostrar(null); });
   // Toque (celular) ou clique: mostra o valor da barra.
-  caixa.addEventListener('click', (e) => mostrar(e.target.closest('.barra')));
+  // No gráfico dos meses, o toque abre o resumo completo daquele mês.
+  caixa.addEventListener('click', (e) => {
+    const g = e.target.closest('.barra');
+    if (g && aoEscolher) { mostrar(null); aoEscolher(pontos[Number(g.dataset.i)]); return; }
+    mostrar(g);
+  });
+  if (aoEscolher) caixa.classList.add('grafico-clicavel');
 }
 
 // ---------- Eventos ----------
