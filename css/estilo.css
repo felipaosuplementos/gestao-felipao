@@ -938,3 +938,11 @@ body.rolou .fab { padding: 16px 20px; border-radius: 50%; min-width: 56px; min-h
 .pedido-info { flex: 1 1 190px; }
 .pedido-acoes { margin-left: auto; }
 .filtro-dia input, .filtros select { min-height: 44px; }
+
+/* Relatórios: um mês escolhido (vindo do gráfico do Painel) */
+.rel-mes-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0 2px; }
+.rel-mes-nav strong { font-size: 1.15rem; color: var(--azul-escuro); }
+.rel-mes-nav .btn-icone { font-size: 1.6rem; min-width: 44px; min-height: 44px; }
+.rel-mes-nav .btn-icone:disabled { opacity: .3; }
+.pc-comparacao { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0 0; color: var(--texto-suave); font-size: .9rem; }
+.grafico-clicavel .barra:hover path { fill: var(--azul-escuro); }
