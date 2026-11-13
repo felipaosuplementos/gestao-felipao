@@ -52,13 +52,47 @@ export function avisar(texto) {
   const el = $('#aviso');
   // Com uma janela aberta, o aviso vai para dentro dela (senão fica escondido atrás).
   const janelas = [...document.querySelectorAll('dialog[open]')];
-  const lugar = janelas[janelas.length - 1] || document.body;
+  const modais = janelas.filter((d) => d.matches(':modal'));
+  const lugar = modais[modais.length - 1] || janelas[janelas.length - 1] || document.body;
   if (el.parentElement !== lugar) lugar.appendChild(el);
   el.textContent = texto;
   el.hidden = false;
   clearTimeout(avisoTimer);
   avisoTimer = setTimeout(() => { el.hidden = true; }, 3000);
 }
+
+// No computador, a ficha (cliente, venda) abre ao lado da lista, sem cobrir a tela:
+// dá para clicar em outro item da lista e a ficha troca. No celular, abre por cima como sempre.
+const telaLarga = matchMedia('(min-width: 1024px)');
+export function abrirAoLado(dlg) {
+  if (dlg.open) return;
+  if (!telaLarga.matches) { dlg.showModal(); return; }
+  document.querySelectorAll('dialog.ao-lado[open]').forEach((d) => d.close());
+  dlg.classList.add('ao-lado');
+  dlg.show();
+  document.body.classList.add('com-ficha');
+  dlg.addEventListener('close', () => {
+    dlg.classList.remove('ao-lado');
+    if (!document.querySelector('dialog.ao-lado[open]')) document.body.classList.remove('com-ficha');
+    document.dispatchEvent(new CustomEvent('ficha-fechada'));
+  }, { once: true });
+}
+// Destaca na lista o item cuja ficha está aberta ao lado.
+export function marcarSelecionado(lista, id) {
+  document.querySelectorAll(`${lista} .item`).forEach((b) => {
+    const meu = b.dataset.id === String(id) || b.dataset.venda === String(id);
+    if (meu && telaLarga.matches) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+  });
+}
+document.addEventListener('ficha-fechada', () => document.querySelectorAll('.item[aria-current]').forEach((b) => b.removeAttribute('aria-current')));
+
+// Esc fecha a ficha aberta ao lado (as janelas por cima já fecham sozinhas).
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || document.querySelector('dialog[open]:modal')) return;
+  document.querySelector('dialog.ao-lado[open]')?.close();
+});
+// Trocar de tela fecha a ficha.
+document.addEventListener('tela-aberta', () => document.querySelector('dialog.ao-lado[open]')?.close());
 
 export function confirmar(titulo, texto, rotuloSim = 'Confirmar', perigo = true) {
   const dlg = $('#dlg-confirmar');

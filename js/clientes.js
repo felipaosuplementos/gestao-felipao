@@ -2,7 +2,7 @@ import * as db from './db.js';
 import { lerCsv, lerNumero, linhasParaDevedores, csvClientes, csvFiadoSeparado, baixarArquivo } from './planilha.js';
 import {
   $, moedaCentavos, telefoneBonito, paraCentavos, esc, semAcento, dataHora, hojeISO, dataCurta,
-  avisar, confirmar, confirmarComMotivo, lerPreferencia, gravarPreferencia,
+  avisar, confirmar, confirmarComMotivo, lerPreferencia, gravarPreferencia, abrirAoLado, marcarSelecionado,
 } from './comum.js';
 import { situacaoCliente, dividirParcelas, somarMeses, linkWhatsApp } from './fiado.js';
 import {
@@ -322,8 +322,8 @@ function abrirCliente(id) {
       </li>`).join('')}</ul>`
     : '<p class="descricao">Nenhum lançamento ainda.</p>'}
   `;
-  const dlg = $('#dlg-cliente');
-  if (!dlg.open) dlg.showModal();
+  abrirAoLado($('#dlg-cliente'));
+  marcarSelecionado('#lista-clientes', clienteAberto);
 }
 
 $('#cliente-conteudo').addEventListener('click', async (e) => {

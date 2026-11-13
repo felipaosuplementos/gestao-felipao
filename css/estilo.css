@@ -1008,3 +1008,52 @@ body.rolou .fab { padding: 16px 20px; border-radius: 50%; min-width: 56px; min-h
   body.rolou .fab span { display: inline; }
   .fab:hover { background: #f1f5ff; }
 }
+
+/* Computador, etapa 2: ficha (cliente, venda) ao lado da lista */
+@media (min-width: 1024px) {
+  :root { --ficha: 460px; }
+  dialog.folha.ao-lado {
+    position: fixed; inset: 0 0 0 auto; z-index: 8;
+    width: var(--ficha); max-width: var(--ficha); height: 100vh; max-height: none;
+    margin: 0; border-radius: 0; border-left: 1px solid var(--borda);
+    box-shadow: -8px 0 24px rgb(11 58 140 / 10%);
+    padding-top: 8px;
+  }
+  body.com-ficha { padding-right: var(--ficha); }
+  body.com-ficha .fab { right: calc(var(--ficha) + 24px); }
+  body.com-ficha > .toast { left: calc(50% + (var(--lateral) - var(--ficha)) / 2); }
+  .item[aria-current="true"] { border-color: var(--azul); box-shadow: 0 0 0 2px var(--azul) inset; background: var(--azul-claro); }
+}
+
+/* Computador, etapa 3: Nova venda em duas colunas (produtos à esquerda, carrinho e pagamento à direita) */
+@media (min-width: 1024px) {
+  dialog#dlg-venda { max-width: 1100px; width: calc(100vw - var(--lateral) - 48px); }
+  #form-venda {
+    display: grid; column-gap: 28px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "topo topo"
+      "busca nome"
+      "resultados carrinho"
+      "resultados vazio"
+      "resultados pagamento"
+      "resultados acoes";
+    grid-template-rows: auto auto auto auto auto 1fr;
+  }
+  #form-venda > .folha-topo { grid-area: topo; }
+  #form-venda > label { grid-area: nome; margin-top: 0; }
+  #venda-busca { grid-area: busca; align-self: end; }
+  #venda-resultados {
+    grid-area: resultados; align-self: start;
+    max-height: calc(94vh - 190px); overflow-y: auto; margin-top: 10px;
+  }
+  #venda-resultados:empty::before {
+    content: "Digite acima o nome, a marca ou o sabor do produto. Os resultados aparecem aqui.";
+    display: block; padding: 28px 16px; border: 2px dashed var(--borda); border-radius: 14px;
+    color: var(--texto-suave); text-align: center;
+  }
+  #venda-carrinho { grid-area: carrinho; }
+  #venda-carrinho-vazio { grid-area: vazio; }
+  #venda-pagamento { grid-area: pagamento; }
+  #form-venda > .folha-acoes { grid-area: acoes; align-self: end; }
+}
