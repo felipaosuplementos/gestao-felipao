@@ -946,3 +946,65 @@ body.rolou .fab { padding: 16px 20px; border-radius: 50%; min-width: 56px; min-h
 .rel-mes-nav .btn-icone:disabled { opacity: .3; }
 .pc-comparacao { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0 0; color: var(--texto-suave); font-size: .9rem; }
 .grafico-clicavel .barra:hover path { fill: var(--azul-escuro); }
+
+/* ===================================================================
+   Computador (tela larga): menu na lateral, telas na largura toda,
+   listas em grade e botão "+ Novo" no topo. No celular nada muda.
+   =================================================================== */
+.lateral-marca, .lateral-menu { display: none; }
+@media (min-width: 1024px) {
+  :root { --lateral: 232px; --conteudo: 1180px; }
+  body { padding-left: var(--lateral); }
+
+  /* Menu lateral */
+  .abas, .abas-5 {
+    top: 0; bottom: 0; right: auto; width: var(--lateral);
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 20px 12px; border-top: 0; border-right: 1px solid var(--borda);
+    box-shadow: none;
+  }
+  .lateral-marca { display: flex; align-items: center; gap: 10px; padding: 0 8px 18px; margin-bottom: 8px; border-bottom: 1px solid var(--borda); color: var(--azul-escuro); line-height: 1.15; }
+  .lateral-marca img { width: 44px; height: 44px; object-fit: contain; }
+  .lateral-marca strong { font-size: 19px; }
+  .aba, .abas-5 .aba {
+    flex-direction: row; justify-content: flex-start; gap: 12px;
+    padding: 11px 14px; border-radius: 12px; font-size: 21px; min-height: 48px;
+  }
+  .aba span, .abas-5 .aba span { font-size: 16px; }
+  .aba[aria-current="page"] { background: var(--azul-claro); box-shadow: none; }
+  .aba:hover { background: var(--fundo); }
+  .aba[aria-current="page"]:hover { background: var(--azul-claro); }
+  .aba .aba-contador { position: static; margin-left: auto; }
+  .lateral-menu { display: flex; margin-top: auto; }
+  .topo .btn-abrir-menu { visibility: hidden; }
+
+  /* Telas na largura toda (até um limite confortável) */
+  main, #tela-inicio main { max-width: var(--conteudo); padding: 20px 24px; }
+  .topo, .topo-extra, #tela-inicio .topo {
+    padding-left: max(24px, calc((100% - var(--conteudo)) / 2 + 24px));
+    padding-right: max(24px, calc((100% - var(--conteudo)) / 2 + 24px));
+  }
+  .aviso-topo, #tela-inicio .aviso-topo { max-width: calc(var(--conteudo) - 48px); margin: 20px auto 0; }
+  .topo h1 { font-size: 28px; }
+  /* Abas internas e busca não precisam ocupar a tela inteira */
+  .topo .segmento, .topo-extra .segmento { max-width: 560px; }
+  #busca, #busca-clientes, #filtro-categoria { max-width: 560px; }
+  body > .toast { left: calc(50% + var(--lateral) / 2); }
+  .filtro-dia { max-width: 560px; }
+  .nova-tarefa { max-width: 900px; }
+
+  /* Listas em grade */
+  #lista { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+  #lista-clientes, #lista-vendas { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 12px; }
+
+  /* "+ Novo" no topo, à direita (em vez de flutuando no canto) */
+  .fab, body.rolou .fab {
+    top: calc(20px + env(safe-area-inset-top)); bottom: auto;
+    right: max(24px, calc((100vw - var(--lateral) - var(--conteudo)) / 2 + 24px));
+    padding: 12px 20px; border-radius: 12px; min-width: 0; min-height: 0; font-size: 16px;
+    box-shadow: 0 2px 8px rgb(11 58 140 / 25%);
+    background: var(--branco); color: var(--azul);
+  }
+  body.rolou .fab span { display: inline; }
+  .fab:hover { background: #f1f5ff; }
+}
