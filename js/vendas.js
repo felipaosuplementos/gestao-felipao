@@ -2,7 +2,7 @@ import * as db from './db.js';
 import { lerNumero, csvVendas, baixarArquivo } from './planilha.js';
 import {
   $, moedaCentavos, paraCentavos, esc, semAcento, hojeISO, dataCurta,
-  avisar, confirmarComMotivo, controlaEstoque,
+  avisar, confirmarComMotivo, controlaEstoque, abrirAoLado, marcarSelecionado,
 } from './comum.js';
 import { situacaoCliente, dividirParcelas, somarMeses } from './fiado.js';
 import { calcularVenda, calcularTroco, FORMAS_PAGAMENTO, nomeForma, resumirVendas, textoLucro } from './venda-calc.js';
@@ -561,8 +561,8 @@ function abrirDetalhe(id) {
     : `<button class="btn btn-primario btn-largo" id="btn-editar-venda">✏️ Editar venda</button>
       <button class="btn btn-perigo-claro btn-largo" id="btn-cancelar-venda">Cancelar esta venda</button>`}
   `;
-  const dlg = $('#dlg-venda-detalhe');
-  if (!dlg.open) dlg.showModal();
+  abrirAoLado($('#dlg-venda-detalhe'));
+  marcarSelecionado('#lista-vendas', v.id);
 }
 
 $('#venda-detalhe').addEventListener('click', async (e) => {
