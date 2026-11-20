@@ -127,10 +127,14 @@ async function mostrarDetalhes() {
     `<strong>Conta:</strong> ${esc(estado.usuario?.email || '')} · <strong>Versão:</strong> ${esc(versao)}`,
     '<br>Já pedi para refazer a ligação com a nuvem. Se algo estiver diferente entre o celular e o computador, toque em <strong>Conferir tudo com a nuvem agora</strong>.',
   ];
+  const parado = esperando.length && Date.now() - esperando[0].desde > DEMORA;
   const escolha = await escolher('Sincronização', linhas.join('<br>'), [
-    { rotulo: '🔄 Conferir tudo com a nuvem agora', valor: 'conferir', principal: true },
+    ...(parado ? [{ rotulo: '🔁 Reiniciar a ligação (envia o que está parado)', valor: 'reiniciar', principal: true }] : []),
+    { rotulo: '🔄 Conferir tudo com a nuvem agora', valor: 'conferir', principal: !parado },
     { rotulo: 'Fechar', valor: null },
   ]);
+  // Reiniciar = o mesmo que fechar e abrir o app: o que está esperando continua guardado e é enviado ao abrir.
+  if (escolha === 'reiniciar') { avisar('Reiniciando a ligação…'); setTimeout(() => location.reload(), 400); return; }
   if (escolha !== 'conferir') return;
   avisar('Conferindo com a nuvem…');
   religarCaidas();
@@ -433,6 +437,11 @@ function aoSair() {
   mostrarLogin();
 }
 
+function usarLongPolling() {
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return ios || lerPreferencia('ligacaoSimples') === 'sim';
+}
+
 async function iniciar() {
   if (!config) { mostrarSituacao('desligada'); return; }
   mostrarSituacao('entrando');
@@ -443,6 +452,9 @@ async function iniciar() {
   estado.fs = fb.initializeFirestore(app, {
     localCache: fb.persistentLocalCache({ tabManager: fb.persistentMultipleTabManager() }),
     ignoreUndefinedProperties: true,
+    // No iPhone/iPad a ligação "contínua" congela quando o app vai para segundo plano
+    // (ex.: ao salvar o backup) e o envio fica parado. A ligação por "consultas repetidas" não congela.
+    ...(usarLongPolling() ? { experimentalForceLongPolling: true } : {}),
   });
   if (EMULADOR) {
     fb.connectAuthEmulator(estado.auth, 'http://127.0.0.1:9099', { disableWarnings: true });
